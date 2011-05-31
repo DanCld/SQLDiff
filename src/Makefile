@@ -1,6 +1,6 @@
 build:
-	flex --c+ --outfile=SQLFileParser.cpp SQLFileParser.l
-	g++ -Wall SQLFileParser.cpp -o SQLFileParser
+	flex -o LexParser.cpp LexParser.l
+	g++ -Wall SQLFileParser.cpp SQLParserHelper.cpp LexParser.cpp -o sqlFileParser
 
 clean:
-	rm -f SQLFileParser SQLFileParser.cpp
+	rm -f sqlFileParser LexParser.cpp

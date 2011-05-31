@@ -3,14 +3,14 @@
 * License: GPL
 */
 
-#include "SQLFileParser.hpp"
+#include "SQLParserHelper.hpp"
 
-#include <iostream>
 #include <stdexcept>
 
 using namespace sqlfileparser;
 
-TextScannerHelper fp;
+static TextScannerHelper fp;
+static SQLTableListManager sm;
 
 %}
 
@@ -35,62 +35,53 @@ create{sep}table{sep} { BEGIN TABLENAME; }
 
 . { }
 
-<TABLENAME>{alpha} { std::cout << "TABLE: " << yytext << std::endl; }
+<TABLENAME>{alpha} { sm.addNewTable(yytext); }
 <TABLENAME>\( { BEGIN TABLEFIELD; }
 <TABLENAME>\) { throw std::runtime_error("Unexpected character " + std::string(yytext) + " in context TABLENAME"); }
 <TABLENAME>\n { }
 <TABLENAME>. { }
 
 <TABLEFIELD>{sep} { }
-<TABLEFIELD>primary { std::cout << "PRIMARY: " << yytext << " | " ; fp.resetBuffer(); BEGIN FDEFINITION; }
-<TABLEFIELD>foreign { std::cout << "FOREIGN: " << yytext << " | " ; fp.resetBuffer(); BEGIN FDEFINITION; }
-<TABLEFIELD>index { std::cout << "INDEX: " << yytext << " | " ; fp.resetBuffer(); BEGIN FDEFINITION; }
-<TABLEFIELD>{alpha} { std::cout << "FIELD: " << yytext << " | " ; fp.resetBuffer(); BEGIN FDEFINITION; }
-<TABLEFIELD>. { }
+<TABLEFIELD>primary { sm.commitPrimary(yytext); BEGIN FDEFINITION; }
+<TABLEFIELD>foreign { sm.commitForeign(yytext); BEGIN FDEFINITION; }
+<TABLEFIELD>index { sm.commitIndex(yytext); BEGIN FDEFINITION; }
+<TABLEFIELD>{alpha} { sm.addNewField(yytext); fp.resetBuffer(); BEGIN FDEFINITION; }
+<TABLEFIELD>[\r\n] { }
+<TABLEFIELD>. { throw std::runtime_error("Unexpected character " + std::string(yytext) + " in context TABLEFIELD"); }
 
 <FDEFINITION>{alphaext} { fp.addToBuffer(yytext); }
 <FDEFINITION>\( { fp.addToBuffer(yytext);  BEGIN FDEFINITIONP; }
 <FDEFINITION>{sep} { fp.addToBuffer(" "); }
-<FDEFINITION>, { std::cout << fp.buffer() << std::endl ; BEGIN TABLEFIELD ; }
-<FDEFINITION>\) { std::cout << fp.buffer() << std::endl ; BEGIN ENDTABLE; }
+<FDEFINITION>, { sm.commitField(fp.buffer()); BEGIN TABLEFIELD ; }
+<FDEFINITION>\) { sm.commitField(fp.buffer()); BEGIN ENDTABLE; }
 <FDEFINITION>[\'\"] { fp.addToBuffer(yytext); BEGIN FDEFINITIONS; }
+<FDEFINITION>[\r\n] { }
 <FDEFINITION>. { }
 
 <FDEFINITIONP>\) { fp.addToBuffer(yytext); BEGIN FDEFINITION; }
-<FDEFINITIONP>\n { }
+<FDEFINITIONP>[\r\n] { }
 <FDEFINITIONP>. { fp.addToBuffer(yytext); }
 
 <FDEFINITIONS>[\'\"] { fp.addToBuffer(yytext); BEGIN FDEFINITION; }
-<FDEFINITIONS>\n { }
+<FDEFINITIONS>[\r\n] { }
 <FDEFINITIONS>. { fp.addToBuffer(yytext); }
 
-<ENDTABLE>; { std::cout << std::endl << std::endl; BEGIN INITIAL; }
+<ENDTABLE>; { sm.commitTable(); BEGIN INITIAL; }
 <ENDTABLE>{sep} { }
+<ENDTABLE>[\r\n] { }
 <ENDTABLE>. { }
 
 %%
 
-TextScannerHelper::TextScannerHelper()
-:buffer_()
+namespace sqlfileparser
 {
-}
 
-void
-TextScannerHelper::addToBuffer(const char* piece)
-{
-	buffer_.append(piece);
-}
-
-void
-TextScannerHelper::resetBuffer()
-{
-	buffer_.clear();
-}
-
-int main()
+const SQLTableListManager& lexParse()
 {
 	yyFlexLexer lex;
 	while (lex.yylex()) { }
 
-	return 0;
+	return sm;
 }
+
+} //namespace

@@ -5,13 +5,12 @@
 * License: GPL
 */
 
-#include <set>
-#include <deque>
-#include <string>
+#include "SQLParserHelper.hpp"
 
 namespace sqlfileparser
 {
 
+	const SQLTableListManager& lexParse();
 
 } // namespace
 
