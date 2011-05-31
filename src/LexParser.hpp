@@ -1,5 +1,5 @@
-#ifndef SQLFILEPARSER_HPP
-#define SQLFILEPARSER_HPP
+#ifndef LEXPARSER_HPP
+#define LEXPARSER_HPP
 
 /* Dan-Claudiu Dragos <dancld@yahoo.co.uk>
 * License: GPL
