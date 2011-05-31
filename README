@@ -1,0 +1,9 @@
+This tool parses 2 database version files (.sql), looks for "create table"
+statements and generates a third .sql file with "alter" commands that
+will allow the clean upgrade of a database from version 1 to version 2.
+
+Documentation not yet written, although it might not be needed.
+
+License: GPL
+
+Dan-Claudiu Dragos <dancld@yahoo.co.uk>
