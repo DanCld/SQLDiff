@@ -37,7 +37,9 @@ void
 SQLTable::clear()
 {
 	name.clear();
+	tabletype.clear();
 	fields.clear();
+	indexedfields.clear();
 	primary.clear();
 	foreign.clear();
 	index.clear();
@@ -47,26 +49,28 @@ void
 SQLTable::print() const
 {
 	std::cout << "TABLE: " << name << std::endl;
-	
-	for(TableNodeMap::const_iterator fit = fields.begin(); fit != fields.end(); ++fit)
+
+	for(TableNodeList::const_iterator fit = fields.begin(); fit != fields.end(); ++fit)
 	{
-		std::cout << "FIELD: " << fit->first << " " << fit->second << std::endl;
+		std::cout << "FIELD: " << *fit << " " << indexedfields.at(*fit) << std::endl;
 	}
-	
+
 	for(TableIndexList::const_iterator pit = primary.begin(); pit != primary.end(); ++pit)
 	{
 		std::cout << "PRIMARY: " << *pit << std::endl;
 	}
-	
+
 	for(TableIndexList::const_iterator oit = foreign.begin(); oit != foreign.end(); ++oit)
 	{
 		std::cout << "FOREIGN: " << *oit << std::endl;
 	}
-	
+
 	for(TableIndexList::const_iterator iit = index.begin(); iit != index.end(); ++iit)
 	{
 		std::cout << "INDEX: " << *iit << std::endl;
 	}
+
+	std::cout << "TYPE: " << tabletype << std::endl;
 }
 
 SQLTableListManager::SQLTableListManager()
@@ -137,9 +141,16 @@ SQLTableListManager::commit(const std::string& contents)
 }
 
 void
+SQLTableListManager::addTableType(const std::string& ttype)
+{
+	temptable_.tabletype.assign(ttype);
+}
+
+void
 SQLTableListManager::commitField(const std::string& contents)
 {
-	temptable_.fields.push_back(std::make_pair<std::string,std::string>(tempfield_, contents));
+	temptable_.fields.push_back(tempfield_);
+	temptable_.indexedfields.insert(std::make_pair<std::string,std::string>(tempfield_, contents));
 }
 
 void
@@ -158,6 +169,15 @@ void
 SQLTableListManager::commitIndex(const std::string& contents)
 {
 	temptable_.index.insert(contents);
+}
+
+void
+SQLTableListManager::clear()
+{
+	tlist_.clear();
+	temptable_.clear();
+	tempfield_.clear();
+	lastState_ = DUMMY;
 }
 
 void

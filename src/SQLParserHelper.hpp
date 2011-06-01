@@ -7,6 +7,7 @@
 
 #include <set>
 #include <deque>
+#include <map>
 #include <string>
 
 namespace sqlfileparser
@@ -32,14 +33,17 @@ class TextScannerHelper
 
 };
 
-typedef std::deque<std::pair<std::string, std::string> > TableNodeMap;
+typedef std::deque<std::string> TableNodeList;
+typedef std::map<std::string, std::string> TableNodeMap;
 typedef std::set<std::string> TableIndexList;
 
 struct SQLTable {
 
-	std::string name;
+	std::string name, tabletype;
 
-	TableNodeMap fields;
+	TableNodeList fields;
+	
+	TableNodeMap indexedfields;
 	
 	TableIndexList primary, foreign, index;
 
@@ -76,7 +80,13 @@ class SQLTableListManager
 
 		void commit(const std::string& contents);
 
+		void addTableType(const std::string& ttype);
+
+		void clear();
+
 		void print() const;
+
+		const SQLTableList& tlist() const { return tlist_; }
 
 	private:
 

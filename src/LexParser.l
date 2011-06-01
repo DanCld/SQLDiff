@@ -25,7 +25,9 @@ static SQLTableListManager sm;
 
 alpha	[a-zA-Z][a-zA-Z0-9_]*
 alphaext	[a-zA-Z0-9_]+
-sep	[ \t\n]+
+sep	[ \t]+
+endln	[\r\n]+
+csep	[ \t]*
 
 %%
 
@@ -38,7 +40,7 @@ sep	[ \t\n]+
 <TABLENAME>{alpha} { sm.addNewTable(yytext); }
 <TABLENAME>\( { BEGIN TABLEFIELD; }
 <TABLENAME>\) { throw std::runtime_error("Unexpected character " + std::string(yytext) + " in context TABLENAME"); }
-<TABLENAME>[\`\n\r] { }
+<TABLENAME>[\`\r\n] { }
 <TABLENAME>. { }
 
 <TABLEFIELD>{sep} { }
@@ -51,24 +53,26 @@ sep	[ \t\n]+
 
 <FDEFINITION>{alphaext} { fp.addToBuffer(yytext); }
 <FDEFINITION>\( { fp.addToBuffer(yytext);  BEGIN FDEFINITIONP; }
+<FDEFINITION>{csep}, { sm.commit(fp.buffer()); BEGIN TABLEFIELD ; }
 <FDEFINITION>{sep} { if (fp.size() > 0) fp.addToBuffer(" "); }
-<FDEFINITION>, { sm.commit(fp.buffer()); BEGIN TABLEFIELD ; }
 <FDEFINITION>\) { sm.commit(fp.buffer()); BEGIN ENDTABLE; }
 <FDEFINITION>[\'\"] { fp.addToBuffer(yytext); BEGIN FDEFINITIONS; }
-<FDEFINITION>[\r\n] { }
+<FDEFINITION>{endln} { }
 <FDEFINITION>. { }
 
 <FDEFINITIONP>\) { fp.addToBuffer(yytext); BEGIN FDEFINITION; }
-<FDEFINITIONP>[\r\n] { }
+<FDEFINITIONP>{endln} { }
 <FDEFINITIONP>. { fp.addToBuffer(yytext); }
 
 <FDEFINITIONS>[\'\"] { fp.addToBuffer(yytext); BEGIN FDEFINITION; }
-<FDEFINITIONS>[\r\n] { }
+<FDEFINITIONS>{endln} { }
 <FDEFINITIONS>. { fp.addToBuffer(yytext); }
 
-<ENDTABLE>; { sm.commitTable(); BEGIN INITIAL; }
-<ENDTABLE>{sep} { }
-<ENDTABLE>[\r\n] { }
+<ENDTABLE>; { sm.addTableType(fp.buffer()); sm.commitTable(); BEGIN INITIAL; }
+<ENDTABLE>type { fp.resetBuffer(); }
+<ENDTABLE>{alphaext} { fp.addToBuffer(yytext); }
+<ENDTABLE>{sep} { if (fp.size() > 0) fp.addToBuffer(" "); }
+<ENDTABLE>{endln} { }
 <ENDTABLE>. { }
 
 %%
@@ -78,6 +82,8 @@ namespace sqlfileparser
 
 const SQLTableListManager& lexParse(std::istream& input)
 {
+	sm.clear();
+
 	yyFlexLexer lex(&input);
 	while (lex.yylex()) { }
 
