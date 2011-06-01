@@ -14,12 +14,15 @@ namespace sqlfileparser
 SQLFileParser::SQLFileParser(const SQLTableListManager& sm1, const SQLTableListManager& sm2, std::ostream& out)
 :sm1_(sm1),
 sm2_(sm2),
+tableCommands_(),
+fieldCommands_(),
+keyCommands_(),
 out_(out)
 {
 }
 
 void
-SQLFileParser::parseTables() const
+SQLFileParser::parseTables()
 {
 	SQLTableList::const_iterator v1_it = sm1_.tlist().begin();
 	SQLTableList::const_iterator v2_it = sm2_.tlist().begin();
@@ -54,12 +57,50 @@ SQLFileParser::parseTables() const
 			continue;
 		}
 
-		parseFields(*(v1_it++), *(v2_it++));
+		fieldCommands_.insert(std::make_pair<std::string, FieldCommand>(v1_it->name, FieldCommand()));
+		parseFields(*(v1_it), *(v2_it));
+
+		keyCommands_.insert(std::make_pair<std::string, std::string>(v1_it->name, std::string()));
+		parsePrimary(*(v1_it), *(v2_it));
+		parseForeign(*(v1_it), *(v2_it));
+		parseIndex(*(v1_it), *(v2_it));
+
+		v1_it++;
+		v2_it++;
+	}
+
+	for(SQLTableRawList::const_iterator it = sm2_.rawtlist().begin() ; it != sm2_.rawtlist().end() ; ++it)
+	{
+		TableCommandsMap::const_iterator tit = tableCommands_.find(it->name);
+		if (tit != tableCommands_.end())
+		{
+			out_ << tit->second;
+			continue;
+		}
+
+		FieldCommandsMap::const_iterator fit = fieldCommands_.find(it->name);
+		if (fit != fieldCommands_.end())
+		{
+			for(TableNodeList::const_iterator mit = it->fields.begin() ; mit != it->fields.end() ; ++mit)
+			{
+				FieldCommand::const_iterator sit = fit->second.find(*mit);
+				if (sit != fit->second.end())
+				{
+					out_ << sit->second;
+				}
+			}
+		}
+
+		KeyCommandsMap::const_iterator pit = keyCommands_.find(it->name);
+		if (pit != keyCommands_.end())
+		{
+			out_ << pit->second;
+		}
 	}
 }
 
 void
-SQLFileParser::parseFields(const SQLTable& ref1, const SQLTable& ref2) const
+SQLFileParser::parseFields(const SQLTable& ref1, const SQLTable& ref2)
 {
 	TableNodeMap::const_iterator fit1 = ref1.indexedfields.begin();
 	TableNodeMap::const_iterator fit2 = ref2.indexedfields.begin();
@@ -102,13 +143,129 @@ SQLFileParser::parseFields(const SQLTable& ref1, const SQLTable& ref2) const
 		fit1++;
 		fit2++;
 	}
-
 }
 
 void
-SQLFileParser::printCreateTableCommand(const SQLTable& ref) const
+SQLFileParser::parsePrimary(const SQLTable& ref1, const SQLTable& ref2)
 {
-	out_ << "create table " << ref.name << std::endl;
+	TableIndexList::const_iterator fit1 = ref1.primary.begin();
+	TableIndexList::const_iterator fit2 = ref2.primary.begin();
+
+	while( fit1 != ref1.primary.end() || fit2 != ref2.primary.end() )
+	{
+		if ( fit2 == ref2.primary.end() )
+		{
+			printAlterDropPrimaryCommand(ref1);
+			fit1++;
+			continue;
+		}
+
+		if ( fit1 == ref1.primary.end() )
+		{
+			printAlterAddPrimaryCommand(ref2, *fit2);
+			fit2++;
+			continue;
+		}
+
+		if ( *fit1 != *fit2 )
+		{
+			printAlterDropPrimaryCommand(ref1);
+			printAlterAddPrimaryCommand(ref2, *fit2);
+		}
+
+		fit1++;
+		fit2++;
+	}
+}
+
+void
+SQLFileParser::parseForeign(const SQLTable& ref1, const SQLTable& ref2)
+{
+	TableIndexList::const_iterator fit1 = ref1.foreign.begin();
+	TableIndexList::const_iterator fit2 = ref2.foreign.begin();
+
+	while( fit1 != ref1.foreign.end() || fit2 != ref2.foreign.end() )
+	{
+		if ( fit2 == ref2.foreign.end() )
+		{
+			printAlterDropForeignCommand(ref1, *fit1);
+			fit1++;
+			continue;
+		}
+
+		if ( fit1 == ref1.foreign.end() )
+		{
+			printAlterAddForeignCommand(ref2, *fit2);
+			fit2++;
+			continue;
+		}
+
+		if ( *fit1 < *fit2 )
+		{
+			printAlterDropForeignCommand(ref1, *fit1);
+			fit1++;
+			continue;
+		}
+
+		if ( *fit1 > *fit2 )
+		{
+			printAlterAddForeignCommand(ref2, *fit2);
+			fit2++;
+			continue;
+		}
+
+		fit1++;
+		fit2++;
+	}
+}
+
+void
+SQLFileParser::parseIndex(const SQLTable& ref1, const SQLTable& ref2)
+{
+	TableIndexList::const_iterator fit1 = ref1.index.begin();
+	TableIndexList::const_iterator fit2 = ref2.index.begin();
+
+	while( fit1 != ref1.index.end() || fit2 != ref2.index.end() )
+	{
+		if ( fit2 == ref2.index.end() )
+		{
+			printAlterDropIndexCommand(ref1, *fit1);
+			fit1++;
+			continue;
+		}
+
+		if ( fit1 == ref1.index.end() )
+		{
+			printAlterAddIndexCommand(ref2, *fit2);
+			fit2++;
+			continue;
+		}
+
+		if ( *fit1 < *fit2 )
+		{
+			printAlterDropIndexCommand(ref1, *fit1);
+			fit1++;
+			continue;
+		}
+
+		if ( *fit1 > *fit2 )
+		{
+			printAlterAddIndexCommand(ref2, *fit2);
+			fit2++;
+			continue;
+		}
+
+		fit1++;
+		fit2++;
+	}
+}
+
+void
+SQLFileParser::printCreateTableCommand(const SQLTable& ref)
+{
+	std::ostringstream mstr_;
+	
+	mstr_ << "create table " << ref.name << std::endl;
 
 	std::ostringstream ostr_;
 	
@@ -134,30 +291,40 @@ SQLFileParser::printCreateTableCommand(const SQLTable& ref) const
 
 	std::string tmpbuf(ostr_.str());
 	tmpbuf.erase(tmpbuf.length()-1, std::string::npos);
-	out_ << "(" << tmpbuf << std::endl << ") type " << ref.tabletype << ";" << std::endl << std::endl;
+	mstr_ << "(" << tmpbuf << std::endl << ") type " << ref.tabletype << ";" << std::endl << std::endl;
+
+	tableCommands_.insert(std::make_pair<std::string, std::string>(ref.name, mstr_.str()));
 }
 
 void
-SQLFileParser::printDropTableCommand(const SQLTable& ref) const
+SQLFileParser::printDropTableCommand(const SQLTable& ref)
 {
 	out_ << "drop table " << ref.name << ";" << std::endl << std::endl;
 }
 
 void
-SQLFileParser::printAlterModifyCommand(const SQLTable& ref, const std::pair<std::string, std::string>& rfield) const
+SQLFileParser::printAlterModifyCommand(const SQLTable& ref, const std::pair<std::string, std::string>& rfield)
 {
-	out_ << "alter table " << ref.name << " modify column " << rfield.first << " " << rfield.second << ";" << std::endl << std::endl;
+	std::ostringstream mstr_;
+	mstr_<< "alter table " << ref.name << " modify column " << rfield.first << " " << rfield.second << ";" << std::endl << std::endl; 
+
+	fieldCommands_.at(ref.name).insert(std::make_pair<std::string, std::string>(rfield.first, mstr_.str()));
 }
 
 void
-SQLFileParser::printAlterDropCommand(const SQLTable& ref, const std::string& rfield) const
+SQLFileParser::printAlterDropCommand(const SQLTable& ref, const std::string& rfield)
 {
-	out_ << "alter table " << ref.name << " drop column " << rfield << ";" << std::endl << std::endl;
+	std::ostringstream mstr_;
+	mstr_ << "alter table " << ref.name << " drop column " << rfield << ";" << std::endl << std::endl;
+
+	fieldCommands_.at(ref.name).insert(std::make_pair<std::string, std::string>(rfield, mstr_.str()));
 }
 
 void
-SQLFileParser::printAlterAddCommand(const SQLTable& ref, const std::pair<std::string, std::string>& rfield) const
+SQLFileParser::printAlterAddCommand(const SQLTable& ref, const std::pair<std::string, std::string>& rfield)
 {
+	std::ostringstream mstr_;
+
 	std::string previous;
 	for(TableNodeList::const_iterator fit = ref.fields.begin() ; fit != ref.fields.end() ; ++fit)
 	{
@@ -169,8 +336,68 @@ SQLFileParser::printAlterAddCommand(const SQLTable& ref, const std::pair<std::st
 	if (previous.size() > 0) tmpbuf.assign("after " + previous);
 	else tmpbuf.assign("first");
 	
-	out_ << "alter table " << ref.name << " add column " << rfield.first << " " << rfield.second <<  " " << tmpbuf << ";" << std::endl << std::endl;
+	mstr_ << "alter table " << ref.name << " add column " << rfield.first << " " << rfield.second <<  " " << tmpbuf << ";" << std::endl << std::endl;
+
+	fieldCommands_.at(ref.name).insert(std::make_pair<std::string, std::string>(rfield.first, mstr_.str()));
 }
 
+void
+SQLFileParser::printAlterDropPrimaryCommand(const SQLTable& ref)
+{
+	std::ostringstream mstr_;
+	mstr_ << "alter table " << ref.name << " drop primary key;" << std::endl << std::endl;
+
+	keyCommands_.at(ref.name).append(mstr_.str());
+}
+
+void
+SQLFileParser::printAlterAddPrimaryCommand(const SQLTable& ref, const std::string& desc)
+{
+	std::ostringstream mstr_;
+	mstr_ << "alter table " << ref.name << " add primary key " << desc << ";" << std::endl << std::endl;
+
+	keyCommands_.at(ref.name).append(mstr_.str());
+}
+
+void
+SQLFileParser::printAlterDropForeignCommand(const SQLTable& ref, const std::string& desc)
+{
+	/* foreign key dropping can't be automatically implemented as it requires an identifier created
+	internally by the InnoDB engine */
+
+	std::ostringstream mstr_;
+	mstr_ << "# foreign key dropping can't be automatically implemented as it " << std::endl;
+	mstr_ << "# requires an identifier created internally by the InnoDB engine." << std::endl;
+	mstr_ << "# alter table " << ref.name << " drop foreign key " << "??fk_symbol??" << "; // description: " << desc << std::endl << std::endl;
+
+	keyCommands_.at(ref.name).append(mstr_.str());
+}
+
+void
+SQLFileParser::printAlterAddForeignCommand(const SQLTable& ref, const std::string& desc)
+{
+	std::ostringstream mstr_;
+	mstr_ << "alter table " << ref.name << " add foreign key " << desc << ";" << std::endl << std::endl;
+
+	keyCommands_.at(ref.name).append(mstr_.str());
+}
+
+void
+SQLFileParser::printAlterDropIndexCommand(const SQLTable& ref, const std::string& desc)
+{
+	std::ostringstream mstr_;
+	mstr_ << "alter table " << ref.name << " drop index " << desc << ";" << std::endl << std::endl;
+
+	keyCommands_.at(ref.name).append(mstr_.str());
+}
+
+void
+SQLFileParser::printAlterAddIndexCommand(const SQLTable& ref, const std::string& desc)
+{
+	std::ostringstream mstr_;
+	mstr_ << "alter table " << ref.name << " add index " << desc << ";" << std::endl << std::endl;
+
+	keyCommands_.at(ref.name).append(mstr_.str());
+}
 
 } //namespace

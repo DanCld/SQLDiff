@@ -54,6 +54,7 @@ struct SQLTable {
 	void print() const;
 };
 
+typedef std::deque<SQLTable> SQLTableRawList;
 typedef std::set<SQLTable> SQLTableList;
 
 enum MgrState {
@@ -88,6 +89,8 @@ class SQLTableListManager
 
 		const SQLTableList& tlist() const { return tlist_; }
 
+		const SQLTableRawList& rawtlist() const { return rawtlist_; }
+
 	private:
 
 		void commitField(const std::string& contents);
@@ -99,6 +102,8 @@ class SQLTableListManager
 		void commitIndex(const std::string& contents);
 
 		SQLTableList tlist_;
+
+		SQLTableRawList rawtlist_;
 
 		SQLTable temptable_;
 

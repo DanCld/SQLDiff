@@ -91,6 +91,8 @@ void
 SQLTableListManager::commitTable()
 {
 	tlist_.insert(temptable_);
+	rawtlist_.push_back(temptable_);
+
 	temptable_.clear();
 }
 
@@ -110,26 +112,29 @@ SQLTableListManager::setState(MgrState state)
 void
 SQLTableListManager::commit(const std::string& contents)
 {
+	std::string::size_type last=contents.find_last_not_of(' ');
+	std::string trcontents(contents.substr(0, last + 1));
+
 	switch(lastState_)
 	{
 		case FIELD:
 		{
-			commitField(contents);
+			commitField(trcontents);
 			break;
 		}
 		case PRIMARY:
 		{
-			commitPrimary(contents);
+			commitPrimary(trcontents);
 			break;
 		}
 		case FOREIGN:
 		{
-			commitForeign(contents);
+			commitForeign(trcontents);
 			break;
 		}
 		case INDEX:
 		{
-			commitIndex(contents);
+			commitIndex(trcontents);
 			break;
 		}
 		default:
@@ -175,6 +180,7 @@ void
 SQLTableListManager::clear()
 {
 	tlist_.clear();
+	rawtlist_.clear();
 	temptable_.clear();
 	tempfield_.clear();
 	lastState_ = DUMMY;

@@ -46,7 +46,7 @@ csep	[ \t]*
 <TABLEFIELD>{sep} { }
 <TABLEFIELD>primary{sep}key { sm.setState(PRIMARY); fp.resetBuffer(); BEGIN FDEFINITION; }
 <TABLEFIELD>foreign{sep}key { sm.setState(FOREIGN); fp.resetBuffer(); BEGIN FDEFINITION; }
-<TABLEFIELD>index{sep} { sm.setState(INDEX); fp.resetBuffer(); BEGIN FDEFINITION; }
+<TABLEFIELD>index{csep} { sm.setState(INDEX); fp.resetBuffer(); BEGIN FDEFINITION; }
 <TABLEFIELD>{alpha} { sm.addNewField(yytext); fp.resetBuffer(); BEGIN FDEFINITION; }
 <TABLEFIELD>[\`\r\n] { }
 <TABLEFIELD>. { throw std::runtime_error("Unexpected character " + std::string(yytext) + " in context TABLEFIELD"); }
