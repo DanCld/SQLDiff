@@ -29,7 +29,7 @@ sep	[ \t\n]+
 
 %%
 
-create{sep}table{sep} { BEGIN TABLENAME; }
+(?i:create{sep}table) { BEGIN TABLENAME; }
 
 \n { }
 
@@ -38,22 +38,22 @@ create{sep}table{sep} { BEGIN TABLENAME; }
 <TABLENAME>{alpha} { sm.addNewTable(yytext); }
 <TABLENAME>\( { BEGIN TABLEFIELD; }
 <TABLENAME>\) { throw std::runtime_error("Unexpected character " + std::string(yytext) + " in context TABLENAME"); }
-<TABLENAME>\n { }
+<TABLENAME>[\`\n\r] { }
 <TABLENAME>. { }
 
 <TABLEFIELD>{sep} { }
-<TABLEFIELD>primary { sm.commitPrimary(yytext); BEGIN FDEFINITION; }
-<TABLEFIELD>foreign { sm.commitForeign(yytext); BEGIN FDEFINITION; }
-<TABLEFIELD>index { sm.commitIndex(yytext); BEGIN FDEFINITION; }
+<TABLEFIELD>primary{sep}key { sm.setState(PRIMARY); fp.resetBuffer(); BEGIN FDEFINITION; }
+<TABLEFIELD>foreign{sep}key { sm.setState(FOREIGN); fp.resetBuffer(); BEGIN FDEFINITION; }
+<TABLEFIELD>index{sep} { sm.setState(INDEX); fp.resetBuffer(); BEGIN FDEFINITION; }
 <TABLEFIELD>{alpha} { sm.addNewField(yytext); fp.resetBuffer(); BEGIN FDEFINITION; }
-<TABLEFIELD>[\r\n] { }
+<TABLEFIELD>[\`\r\n] { }
 <TABLEFIELD>. { throw std::runtime_error("Unexpected character " + std::string(yytext) + " in context TABLEFIELD"); }
 
 <FDEFINITION>{alphaext} { fp.addToBuffer(yytext); }
 <FDEFINITION>\( { fp.addToBuffer(yytext);  BEGIN FDEFINITIONP; }
-<FDEFINITION>{sep} { fp.addToBuffer(" "); }
-<FDEFINITION>, { sm.commitField(fp.buffer()); BEGIN TABLEFIELD ; }
-<FDEFINITION>\) { sm.commitField(fp.buffer()); BEGIN ENDTABLE; }
+<FDEFINITION>{sep} { if (fp.size() > 0) fp.addToBuffer(" "); }
+<FDEFINITION>, { sm.commit(fp.buffer()); BEGIN TABLEFIELD ; }
+<FDEFINITION>\) { sm.commit(fp.buffer()); BEGIN ENDTABLE; }
 <FDEFINITION>[\'\"] { fp.addToBuffer(yytext); BEGIN FDEFINITIONS; }
 <FDEFINITION>[\r\n] { }
 <FDEFINITION>. { }
@@ -76,9 +76,9 @@ create{sep}table{sep} { BEGIN TABLENAME; }
 namespace sqlfileparser
 {
 
-const SQLTableListManager& lexParse()
+const SQLTableListManager& lexParse(std::istream& input)
 {
-	yyFlexLexer lex;
+	yyFlexLexer lex(&input);
 	while (lex.yylex()) { }
 
 	return sm;

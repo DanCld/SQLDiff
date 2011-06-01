@@ -3,6 +3,7 @@
 */
 
 #include <iostream>
+#include <stdexcept>
 
 #include "SQLParserHelper.hpp"
 
@@ -71,7 +72,8 @@ SQLTable::print() const
 SQLTableListManager::SQLTableListManager()
 :tlist_(),
 temptable_(),
-tempfield_()
+tempfield_(),
+lastState_(DUMMY)
 {
 }
 
@@ -92,6 +94,46 @@ void
 SQLTableListManager::addNewField(const std::string& tfield)
 {
 	tempfield_.assign(tfield);
+	lastState_ = FIELD;
+}
+
+void
+SQLTableListManager::setState(MgrState state)
+{
+	lastState_ = state;
+}
+
+void
+SQLTableListManager::commit(const std::string& contents)
+{
+	switch(lastState_)
+	{
+		case FIELD:
+		{
+			commitField(contents);
+			break;
+		}
+		case PRIMARY:
+		{
+			commitPrimary(contents);
+			break;
+		}
+		case FOREIGN:
+		{
+			commitForeign(contents);
+			break;
+		}
+		case INDEX:
+		{
+			commitIndex(contents);
+			break;
+		}
+		default:
+		{
+			throw std::logic_error("SQLTableListManager:commit() called on DUMMY last state!");
+		}
+	}
+	lastState_ = DUMMY;
 }
 
 void

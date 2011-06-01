@@ -1,9 +1,9 @@
-#ifndef SQLPARSERHELPER_HPP
-#define SQLPARSERHELPER_HPP
-
 /* Dan-Claudiu Dragos <dancld@yahoo.co.uk>
 * License: GPL
 */
+
+#ifndef SQLPARSERHELPER_HPP
+#define SQLPARSERHELPER_HPP
 
 #include <set>
 #include <deque>
@@ -23,6 +23,8 @@ class TextScannerHelper
 		void addToBuffer(const char* piece);
 
 		void resetBuffer();
+
+		std::string::size_type size() const { return buffer_.size(); }
 
 	private:
 
@@ -50,6 +52,14 @@ struct SQLTable {
 
 typedef std::set<SQLTable> SQLTableList;
 
+enum MgrState {
+	DUMMY = 0,
+	FIELD,
+	PRIMARY,
+	FOREIGN,
+	INDEX
+};
+
 class SQLTableListManager
 {
 	public:
@@ -61,7 +71,15 @@ class SQLTableListManager
 		void commitTable();
 
 		void addNewField(const std::string& tfield);
-		
+
+		void setState(MgrState state);
+
+		void commit(const std::string& contents);
+
+		void print() const;
+
+	private:
+
 		void commitField(const std::string& contents);
 
 		void commitPrimary(const std::string& contents);
@@ -70,15 +88,13 @@ class SQLTableListManager
 
 		void commitIndex(const std::string& contents);
 
-		void print() const;
-
-	private:
-
 		SQLTableList tlist_;
 
 		SQLTable temptable_;
 
 		std::string tempfield_;
+
+		MgrState lastState_;
 };
 
 } // namespace
