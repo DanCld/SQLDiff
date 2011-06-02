@@ -9,29 +9,10 @@
 #include <deque>
 #include <map>
 #include <string>
+#include <ostream>
 
 namespace sqlfileparser
 {
-
-class TextScannerHelper
-{
-	public:
-
-		TextScannerHelper();
-
-		const std::string& buffer() const { return buffer_; }
-
-		void addToBuffer(const char* piece);
-
-		void resetBuffer();
-
-		std::string::size_type size() const { return buffer_.size(); }
-
-	private:
-
-		std::string buffer_;
-
-};
 
 typedef std::deque<std::string> TableNodeList;
 typedef std::map<std::string, std::string> TableNodeMap;
@@ -51,7 +32,7 @@ struct SQLTable {
 
 	void clear();
 
-	void print() const;
+	void print(std::ostream&) const;
 };
 
 typedef std::deque<SQLTable> SQLTableRawList;
@@ -85,7 +66,7 @@ class SQLTableListManager
 
 		void clear();
 
-		void print() const;
+		void print(std::ostream& out) const;
 
 		const SQLTableList& tlist() const { return tlist_; }
 

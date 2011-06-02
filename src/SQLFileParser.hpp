@@ -11,20 +11,24 @@
 namespace sqlfileparser
 {
 
+typedef std::string TableDropCommands;
 typedef std::map<std::string, std::string> TableCommandsMap;
 typedef std::map<std::string, std::string> FieldCommand;
 typedef std::map<std::string, FieldCommand> FieldCommandsMap;
+typedef std::map<std::string, std::string> FieldDropCommandsMap;
 typedef std::map<std::string, std::string> KeyCommandsMap;
 
 class SQLFileParser {
 
 	public:
 
-		SQLFileParser(const SQLTableListManager& sm1, const SQLTableListManager& sm2, std::ostream& out);
+		SQLFileParser(const SQLTableListManager& sm1, const SQLTableListManager& sm2);
 
-		void parseTables();
+		void print(std::ostream& out);
 
 	private:
+
+		void parseTables();
 
 		void parseFields(const SQLTable& ref1, const SQLTable& ref2);
 
@@ -60,11 +64,14 @@ class SQLFileParser {
 
 		TableCommandsMap tableCommands_;
 
+		TableDropCommands tableDropCommands_;
+
 		FieldCommandsMap fieldCommands_;
+
+		FieldDropCommandsMap fieldDropCommands_;
 
 		KeyCommandsMap keyCommands_;
 
-		mutable std::ostream& out_;
 };
 
 } // namespace

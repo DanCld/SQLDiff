@@ -42,9 +42,9 @@ int main(int argc, char* argv[])
 	const SQLTableListManager sm1(lexParse(inp1));
 	const SQLTableListManager sm2(lexParse(inp2));
 
-	SQLFileParser sqlParser(sm1, sm2, out);
+	SQLFileParser sqlParser(sm1, sm2);
 
-	sqlParser.parseTables();
+	sqlParser.print(out);
 
 	return 0;
 }

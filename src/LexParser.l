@@ -9,7 +9,8 @@
 
 using namespace sqlfileparser;
 
-static TextScannerHelper fp;
+static std::string bufString;
+
 static SQLTableListManager sm;
 
 %}
@@ -44,34 +45,34 @@ csep	[ \t]*
 <TABLENAME>. { }
 
 <TABLEFIELD>{sep} { }
-<TABLEFIELD>primary{sep}key { sm.setState(PRIMARY); fp.resetBuffer(); BEGIN FDEFINITION; }
-<TABLEFIELD>foreign{sep}key { sm.setState(FOREIGN); fp.resetBuffer(); BEGIN FDEFINITION; }
-<TABLEFIELD>index{csep} { sm.setState(INDEX); fp.resetBuffer(); BEGIN FDEFINITION; }
-<TABLEFIELD>{alpha} { sm.addNewField(yytext); fp.resetBuffer(); BEGIN FDEFINITION; }
+<TABLEFIELD>primary{sep}key { sm.setState(PRIMARY); bufString.clear(); BEGIN FDEFINITION; }
+<TABLEFIELD>foreign{sep}key { sm.setState(FOREIGN); bufString.clear(); BEGIN FDEFINITION; }
+<TABLEFIELD>index{csep} { sm.setState(INDEX); bufString.clear(); BEGIN FDEFINITION; }
+<TABLEFIELD>{alpha} { sm.addNewField(yytext); bufString.clear(); BEGIN FDEFINITION; }
 <TABLEFIELD>[\`\r\n] { }
 <TABLEFIELD>. { throw std::runtime_error("Unexpected character " + std::string(yytext) + " in context TABLEFIELD"); }
 
-<FDEFINITION>{alphaext} { fp.addToBuffer(yytext); }
-<FDEFINITION>\( { fp.addToBuffer(yytext);  BEGIN FDEFINITIONP; }
-<FDEFINITION>{csep}, { sm.commit(fp.buffer()); BEGIN TABLEFIELD ; }
-<FDEFINITION>{sep} { if (fp.size() > 0) fp.addToBuffer(" "); }
-<FDEFINITION>\) { sm.commit(fp.buffer()); BEGIN ENDTABLE; }
-<FDEFINITION>[\'\"] { fp.addToBuffer(yytext); BEGIN FDEFINITIONS; }
+<FDEFINITION>{alphaext} { bufString.append(yytext); }
+<FDEFINITION>\( { bufString.append(yytext);  BEGIN FDEFINITIONP; }
+<FDEFINITION>{csep}, { sm.commit(bufString); BEGIN TABLEFIELD ; }
+<FDEFINITION>{sep} { if (bufString.size() > 0) bufString.append(" "); }
+<FDEFINITION>\) { sm.commit(bufString); BEGIN ENDTABLE; }
+<FDEFINITION>[\'\"] { bufString.append(yytext); BEGIN FDEFINITIONS; }
 <FDEFINITION>{endln} { }
 <FDEFINITION>. { }
 
-<FDEFINITIONP>\) { fp.addToBuffer(yytext); BEGIN FDEFINITION; }
+<FDEFINITIONP>\) { bufString.append(yytext); BEGIN FDEFINITION; }
 <FDEFINITIONP>{endln} { }
-<FDEFINITIONP>. { fp.addToBuffer(yytext); }
+<FDEFINITIONP>. { bufString.append(yytext); }
 
-<FDEFINITIONS>[\'\"] { fp.addToBuffer(yytext); BEGIN FDEFINITION; }
+<FDEFINITIONS>[\'\"] { bufString.append(yytext); BEGIN FDEFINITION; }
 <FDEFINITIONS>{endln} { }
-<FDEFINITIONS>. { fp.addToBuffer(yytext); }
+<FDEFINITIONS>. { bufString.append(yytext); }
 
-<ENDTABLE>; { sm.addTableType(fp.buffer()); sm.commitTable(); BEGIN INITIAL; }
-<ENDTABLE>type { fp.resetBuffer(); }
-<ENDTABLE>{alphaext} { fp.addToBuffer(yytext); }
-<ENDTABLE>{sep} { if (fp.size() > 0) fp.addToBuffer(" "); }
+<ENDTABLE>; { sm.addTableType(bufString); sm.commitTable(); BEGIN INITIAL; }
+<ENDTABLE>type { bufString.clear(); }
+<ENDTABLE>{alphaext} { bufString.append(yytext); }
+<ENDTABLE>{sep} { if (bufString.size() > 0) bufString.append(" "); }
 <ENDTABLE>{endln} { }
 <ENDTABLE>. { }
 
@@ -82,6 +83,7 @@ namespace sqlfileparser
 
 const SQLTableListManager& lexParse(std::istream& input)
 {
+	bufString.clear();
 	sm.clear();
 
 	yyFlexLexer lex(&input);

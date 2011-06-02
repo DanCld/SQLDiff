@@ -2,7 +2,6 @@
 * License: GPL
 */
 
-#include <iostream>
 #include <sstream>
 #include <string>
 
@@ -11,14 +10,57 @@
 namespace sqlfileparser
 {
 
-SQLFileParser::SQLFileParser(const SQLTableListManager& sm1, const SQLTableListManager& sm2, std::ostream& out)
+SQLFileParser::SQLFileParser(const SQLTableListManager& sm1, const SQLTableListManager& sm2)
 :sm1_(sm1),
 sm2_(sm2),
 tableCommands_(),
+tableDropCommands_(),
 fieldCommands_(),
-keyCommands_(),
-out_(out)
+fieldDropCommands_(),
+keyCommands_()
 {
+	parseTables();
+}
+
+void
+SQLFileParser::print(std::ostream& out)
+{
+	for(SQLTableRawList::const_iterator it = sm2_.rawtlist().begin() ; it != sm2_.rawtlist().end() ; ++it)
+	{
+		TableCommandsMap::const_iterator tit = tableCommands_.find(it->name);
+		if (tit != tableCommands_.end())
+		{
+			out << tit->second;
+			continue;
+		}
+
+		FieldCommandsMap::const_iterator fit = fieldCommands_.find(it->name);
+		if (fit != fieldCommands_.end())
+		{
+			for(TableNodeList::const_iterator mit = it->fields.begin() ; mit != it->fields.end() ; ++mit)
+			{
+				FieldCommand::const_iterator sit = fit->second.find(*mit);
+				if (sit != fit->second.end())
+				{
+					out << sit->second;
+				}
+			}
+		}
+
+		KeyCommandsMap::const_iterator pit = keyCommands_.find(it->name);
+		if (pit != keyCommands_.end())
+		{
+			out << pit->second;
+		}
+
+		FieldDropCommandsMap::const_iterator fdit = fieldDropCommands_.find(it->name);
+		if (fdit != fieldDropCommands_.end())
+		{
+			out << fdit->second;
+		}
+	}
+
+	out << tableDropCommands_;
 }
 
 void
@@ -58,6 +100,7 @@ SQLFileParser::parseTables()
 		}
 
 		fieldCommands_.insert(std::make_pair<std::string, FieldCommand>(v1_it->name, FieldCommand()));
+		fieldDropCommands_.insert(std::make_pair<std::string, std::string>(v1_it->name, std::string()));
 		parseFields(*(v1_it), *(v2_it));
 
 		keyCommands_.insert(std::make_pair<std::string, std::string>(v1_it->name, std::string()));
@@ -67,35 +110,6 @@ SQLFileParser::parseTables()
 
 		v1_it++;
 		v2_it++;
-	}
-
-	for(SQLTableRawList::const_iterator it = sm2_.rawtlist().begin() ; it != sm2_.rawtlist().end() ; ++it)
-	{
-		TableCommandsMap::const_iterator tit = tableCommands_.find(it->name);
-		if (tit != tableCommands_.end())
-		{
-			out_ << tit->second;
-			continue;
-		}
-
-		FieldCommandsMap::const_iterator fit = fieldCommands_.find(it->name);
-		if (fit != fieldCommands_.end())
-		{
-			for(TableNodeList::const_iterator mit = it->fields.begin() ; mit != it->fields.end() ; ++mit)
-			{
-				FieldCommand::const_iterator sit = fit->second.find(*mit);
-				if (sit != fit->second.end())
-				{
-					out_ << sit->second;
-				}
-			}
-		}
-
-		KeyCommandsMap::const_iterator pit = keyCommands_.find(it->name);
-		if (pit != keyCommands_.end())
-		{
-			out_ << pit->second;
-		}
 	}
 }
 
@@ -299,7 +313,10 @@ SQLFileParser::printCreateTableCommand(const SQLTable& ref)
 void
 SQLFileParser::printDropTableCommand(const SQLTable& ref)
 {
-	out_ << "drop table " << ref.name << ";" << std::endl << std::endl;
+	std::ostringstream mstr_;
+	mstr_ << "drop table " << ref.name << ";" << std::endl << std::endl;
+
+	tableDropCommands_.append(mstr_.str());
 }
 
 void
@@ -317,7 +334,7 @@ SQLFileParser::printAlterDropCommand(const SQLTable& ref, const std::string& rfi
 	std::ostringstream mstr_;
 	mstr_ << "alter table " << ref.name << " drop column " << rfield << ";" << std::endl << std::endl;
 
-	fieldCommands_.at(ref.name).insert(std::make_pair<std::string, std::string>(rfield, mstr_.str()));
+	fieldDropCommands_.at(ref.name).append(mstr_.str());
 }
 
 void

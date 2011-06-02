@@ -2,30 +2,12 @@
 * License: GPL
 */
 
-#include <iostream>
 #include <stdexcept>
 
 #include "SQLParserHelper.hpp"
 
 namespace sqlfileparser
 {
-
-TextScannerHelper::TextScannerHelper()
-:buffer_()
-{
-}
-
-void
-TextScannerHelper::addToBuffer(const char* piece)
-{
-	buffer_.append(piece);
-}
-
-void
-TextScannerHelper::resetBuffer()
-{
-	buffer_.clear();
-}
 
 int
 SQLTable::operator<(const SQLTable& other) const
@@ -46,31 +28,31 @@ SQLTable::clear()
 }
 
 void
-SQLTable::print() const
+SQLTable::print(std::ostream& out) const
 {
-	std::cout << "TABLE: " << name << std::endl;
+	out << "TABLE: " << name << std::endl;
 
 	for(TableNodeList::const_iterator fit = fields.begin(); fit != fields.end(); ++fit)
 	{
-		std::cout << "FIELD: " << *fit << " " << indexedfields.at(*fit) << std::endl;
+		out << "FIELD: " << *fit << " " << indexedfields.at(*fit) << std::endl;
 	}
 
 	for(TableIndexList::const_iterator pit = primary.begin(); pit != primary.end(); ++pit)
 	{
-		std::cout << "PRIMARY: " << *pit << std::endl;
+		out << "PRIMARY: " << *pit << std::endl;
 	}
 
 	for(TableIndexList::const_iterator oit = foreign.begin(); oit != foreign.end(); ++oit)
 	{
-		std::cout << "FOREIGN: " << *oit << std::endl;
+		out << "FOREIGN: " << *oit << std::endl;
 	}
 
 	for(TableIndexList::const_iterator iit = index.begin(); iit != index.end(); ++iit)
 	{
-		std::cout << "INDEX: " << *iit << std::endl;
+		out << "INDEX: " << *iit << std::endl;
 	}
 
-	std::cout << "TYPE: " << tabletype << std::endl;
+	out << "TYPE: " << tabletype << std::endl;
 }
 
 SQLTableListManager::SQLTableListManager()
@@ -187,13 +169,13 @@ SQLTableListManager::clear()
 }
 
 void
-SQLTableListManager::print() const
+SQLTableListManager::print(std::ostream& out) const
 {
-	std::cout << "---------------------------------" << std::endl;
+	out << "---------------------------------" << std::endl;
 	for(SQLTableList::const_iterator it = tlist_.begin() ; it != tlist_.end() ; ++it)
 	{
-		it->print();
-		std::cout << "---------------------------------" << std::endl;
+		it->print(out);
+		out << "---------------------------------" << std::endl;
 	}
 }
 
