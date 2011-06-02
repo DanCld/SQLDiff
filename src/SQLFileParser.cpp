@@ -317,7 +317,7 @@ SQLFileParser::printCreateTableCommand(const SQLTable& ref)
 	std::string tmpbuf(ostr_.str());
 	tmpbuf.erase(tmpbuf.length()-1, std::string::npos);
 
-	mstr_ << "(" << tmpbuf << std::endl << ") type "
+	mstr_ << "(" << tmpbuf << std::endl << ") "
 		<< ref.tabletype << ";"
 		<< std::endl << std::endl;
 
