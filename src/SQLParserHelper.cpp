@@ -3,6 +3,7 @@
 */
 
 #include <stdexcept>
+#include <algorithm>
 
 #include "SQLParserHelper.hpp"
 
@@ -96,10 +97,18 @@ SQLTableListManager::setState(MgrState state)
 }
 
 void
+SQLTableListManager::addPrimaryKeyFromField()
+{
+	temptable_.primary.insert(std::make_pair<std::string, std::string>("(" + tempfield_ + ")", ""));
+}
+
+void
 SQLTableListManager::commit()
 {
 	std::string::size_type last=tempcontents_.find_last_not_of(' ');
 	tempcontents_.assign(tempcontents_.substr(0, last + 1));
+
+	std::transform(tempcontents_.begin(), tempcontents_.end(), tempcontents_.begin(), ::tolower);
 
 	switch(lastState_)
 	{

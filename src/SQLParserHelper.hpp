@@ -72,6 +72,8 @@ class SQLTableListManager
 
 		void setState(MgrState state);
 
+		void addPrimaryKeyFromField();
+
 		void commit();
 
 		void addTableType();

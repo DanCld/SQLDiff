@@ -91,7 +91,7 @@ SQLFileParser::parseTables()
 	SQLTableList::const_iterator v1_it = sm1_.tlist().begin();
 	SQLTableList::const_iterator v2_it = sm2_.tlist().begin();
 
-/* We go through both indexed structures at once (complexity O(n))
+/* we go through both indexed structures at once (complexity O(n))
 */
 
 	while( v1_it != sm1_.tlist().end() || v2_it != sm2_.tlist().end() )
@@ -144,7 +144,7 @@ SQLFileParser::parseFields(const SQLTable& ref1, const SQLTable& ref2)
 	TableNodeMap::const_iterator fit1 = ref1.indexedfields.begin();
 	TableNodeMap::const_iterator fit2 = ref2.indexedfields.begin();
 
-/* We go through both indexed structures at once (complexity O(n))
+/* we go through both indexed structures at once (complexity O(n))
 */
 
 	while( fit1 != ref1.indexedfields.end() || fit2 != ref2.indexedfields.end() )

@@ -13,8 +13,8 @@
 
 using namespace sqlfileparser;
 
-/* the static (pre-allocated on heap) variable should always be declared in the .cpp
-   we must ensure that is allocated once and initialized (cleared) before every use
+/* the static (pre-allocated on heap) variable should always be declared in the .cpp;
+   we must ensure that is allocated once and initialized (cleared) before every use;
    we must return it outside this module by the means of a reference to prevent extra
    copying
 */
@@ -94,6 +94,7 @@ csep	[ \t]*
 <FCONSTRAINT>{endln} { }
 <FCONSTRAINT>. { throw std::runtime_error("Unexpected character \"" + std::string(yytext) + "\" in context FCONSTRAINT"); }
 
+<FDEFINITION>(?i:primary{sep}key) { sm.addPrimaryKeyFromField(); }
 <FDEFINITION>{alphaext} { sm.tempContents().append(yytext); }
 <FDEFINITION>\( { sm.tempContents().append(yytext);  BEGIN FDEFINITIONP; }
 <FDEFINITION>{csep}, { sm.commit(); BEGIN TABLEFIELD ; }

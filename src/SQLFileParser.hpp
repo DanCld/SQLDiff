@@ -61,8 +61,8 @@ class SQLFileParser {
 
 		void printAlterAddIndexCommand(const SQLTable& ref, const std::string& desc);
 
-/* these data structures must be allocated and initialized outside this class
-   note the const reference declaration for both
+/* these data structures must be allocated and initialized outside this class;
+   please note the const reference declaration for both
 */
 
 		const SQLTableListManager &sm1_, &sm2_;
