@@ -3,12 +3,21 @@
 * License: GPL
 */
 
+/* this file will be expanded into a .cpp one by the flex program
+*/
+
 #include "SQLParserHelper.hpp"
 
 #include <iostream>
 #include <stdexcept>
 
 using namespace sqlfileparser;
+
+/* the static (pre-allocated on heap) variable should always be declared in the .cpp
+   we must ensure that is allocated once and initialized (cleared) before every use
+   we must return it outside this module by the means of a reference to prevent extra
+   copying
+*/
 
 static SQLTableListManager sm;
 
@@ -49,7 +58,6 @@ csep	[ \t]*
 <TABLENAME>{endln} { }
 <TABLENAME>. { }
 
-<TABLEFIELD>{sep} { }
 <TABLEFIELD>(?i:constraint) { BEGIN FCONSTRAINT; }
 <TABLEFIELD>(?i:primary{sep}key) { sm.setState(PRIMARY); BEGIN FDEFINITION; }
 <TABLEFIELD>(?i:foreign{sep}key) { sm.setState(FOREIGN); BEGIN FDEFINITION; }
@@ -61,10 +69,10 @@ csep	[ \t]*
 <TABLEFIELD>(?i:check{csep}) { std::cerr << "WARNING: checks not yet supported (table: \"" << sm.tempTable() << "\")" << std::endl; BEGIN SKIPLINE; }
 <TABLEFIELD>\`{alpha}\` { sm.addNewField(yytext); BEGIN FDEFINITION; }
 <TABLEFIELD>{alpha} { sm.addNewField(yytext); BEGIN FDEFINITION; }
+<TABLEFIELD>{sep} { }
 <TABLEFIELD>{endln} { }
 <TABLEFIELD>. { throw std::runtime_error("Unexpected character \"" + std::string(yytext) + "\" in context TABLEFIELD"); }
 
-<FCONSTRAINT>{sep} { }
 <FCONSTRAINT>(?i:primary{sep}key) { sm.setState(PRIMARY); BEGIN FDEFINITION; }
 <FCONSTRAINT>(?i:foreign{sep}key) { sm.setState(FOREIGN); BEGIN FDEFINITION; }
 <FCONSTRAINT>(?i:unique{csep}) { std::cerr << "WARNING: unique constraints not yet supported! (table: \"" << sm.tempTable() << "\")" << std::endl; BEGIN SKIPLINE; }
@@ -82,10 +90,10 @@ csep	[ \t]*
 	}
 	sm.tempConstraint().assign(yytext);
 }
+<FCONSTRAINT>{sep} { }
 <FCONSTRAINT>{endln} { }
 <FCONSTRAINT>. { throw std::runtime_error("Unexpected character \"" + std::string(yytext) + "\" in context FCONSTRAINT"); }
 
-<FDEFINITION>\` { }
 <FDEFINITION>{alphaext} { sm.tempContents().append(yytext); }
 <FDEFINITION>\( { sm.tempContents().append(yytext);  BEGIN FDEFINITIONP; }
 <FDEFINITION>{csep}, { sm.commit(); BEGIN TABLEFIELD ; }

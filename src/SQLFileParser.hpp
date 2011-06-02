@@ -6,6 +6,7 @@
 #define SQLFILEPARSER_HPP
 
 #include <ostream>
+
 #include "SQLParserHelper.hpp"
 
 namespace sqlfileparser
@@ -59,6 +60,10 @@ class SQLFileParser {
 		void printAlterDropIndexCommand(const SQLTable& ref, const std::string& desc);
 
 		void printAlterAddIndexCommand(const SQLTable& ref, const std::string& desc);
+
+/* these data structures must be allocated and initialized outside this class
+   note the const reference declaration for both
+*/
 
 		const SQLTableListManager &sm1_, &sm2_;
 

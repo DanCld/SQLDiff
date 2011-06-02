@@ -25,14 +25,26 @@ keyCommands_()
 void
 SQLFileParser::print(std::ostream& out)
 {
+
+/* We generated the result into indexed structures but we need to print everything
+   out in the order we received the input (that is the table order in the second .sql file
+*/
+
 	for(SQLTableRawList::const_iterator it = sm2_.rawtlist().begin() ; it != sm2_.rawtlist().end() ; ++it)
 	{
+
+/* create table statements, if any
+*/
+
 		TableCommandsMap::const_iterator tit = tableCommands_.find(it->name);
 		if (tit != tableCommands_.end())
 		{
 			out << tit->second;
 			continue;
 		}
+
+/* alter table add column / modify column, if any
+*/
 
 		FieldCommandsMap::const_iterator fit = fieldCommands_.find(it->name);
 		if (fit != fieldCommands_.end())
@@ -47,11 +59,18 @@ SQLFileParser::print(std::ostream& out)
 			}
 		}
 
+/* alter table add constraints, keys, indexes... , if any
+   alter table drop constraints, keys, indexes... , if any
+*/
+
 		KeyCommandsMap::const_iterator pit = keyCommands_.find(it->name);
 		if (pit != keyCommands_.end())
 		{
 			out << pit->second;
 		}
+
+/* alter table drop column, if any (mind the order: first the constraint, then the column!)
+*/
 
 		FieldDropCommandsMap::const_iterator fdit = fieldDropCommands_.find(it->name);
 		if (fdit != fieldDropCommands_.end())
@@ -59,6 +78,9 @@ SQLFileParser::print(std::ostream& out)
 			out << fdit->second;
 		}
 	}
+
+/* last: drop table statements
+*/
 
 	out << tableDropCommands_;
 }
@@ -68,6 +90,9 @@ SQLFileParser::parseTables()
 {
 	SQLTableList::const_iterator v1_it = sm1_.tlist().begin();
 	SQLTableList::const_iterator v2_it = sm2_.tlist().begin();
+
+/* We go through both indexed structures at once (complexity O(n))
+*/
 
 	while( v1_it != sm1_.tlist().end() || v2_it != sm2_.tlist().end() )
 	{
@@ -118,6 +143,9 @@ SQLFileParser::parseFields(const SQLTable& ref1, const SQLTable& ref2)
 {
 	TableNodeMap::const_iterator fit1 = ref1.indexedfields.begin();
 	TableNodeMap::const_iterator fit2 = ref2.indexedfields.begin();
+
+/* We go through both indexed structures at once (complexity O(n))
+*/
 
 	while( fit1 != ref1.indexedfields.end() || fit2 != ref2.indexedfields.end() )
 	{
@@ -181,6 +209,12 @@ SQLFileParser::parsePrimary(const SQLTable& ref1, const SQLTable& ref2)
 			continue;
 		}
 
+/* Iterators point to std::pair<std::string, std::string> ; the condition below works if both
+   first and second elements of the pair are different. In our situation it may trigger a 
+   primary key replacement if the primary key field name changes or the constraint identification
+   symbol changes.
+*/
+
 		if ( *fit1 != *fit2 )
 		{
 			printAlterDropPrimaryCommand(ref1);
@@ -214,18 +248,28 @@ SQLFileParser::parseForeign(const SQLTable& ref1, const SQLTable& ref2)
 			continue;
 		}
 
-		if ( *fit1 < *fit2 )
+		if ( fit1->first < fit2->first )
 		{
 			printAlterDropForeignCommand(ref1, *fit1);
 			fit1++;
 			continue;
 		}
 
-		if ( *fit1 > *fit2 )
+		if ( fit1->first > fit2->first )
 		{
 			printAlterAddForeignCommand(ref2, *fit2);
 			fit2++;
 			continue;
+		}
+
+/* the condition below forces the replacement of the foreign key if the constraint
+   identification symbol changes
+*/
+
+		if (fit1->first == fit2->first && fit1->second != fit2->second)
+		{
+			printAlterDropForeignCommand(ref1, *fit1);
+			printAlterAddForeignCommand(ref2, *fit2);
 		}
 
 		fit1++;
@@ -255,14 +299,17 @@ SQLFileParser::parseIndex(const SQLTable& ref1, const SQLTable& ref2)
 			continue;
 		}
 
-		if ( *fit1 < *fit2 )
+/* for indexes the second part of the pair is not used
+*/
+
+		if ( fit1->first < fit2->first )
 		{
 			printAlterDropIndexCommand(ref1, fit1->first);
 			fit1++;
 			continue;
 		}
 
-		if ( *fit1 > *fit2 )
+		if ( fit1->first > fit2->first )
 		{
 			printAlterAddIndexCommand(ref2, fit2->first);
 			fit2++;

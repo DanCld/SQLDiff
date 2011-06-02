@@ -22,11 +22,23 @@ struct SQLTable {
 
 	std::string name, tabletype;
 
+/* the fields are kept into 2 data structures; the first one is indexed
+   for the use of the algorythm while the second is used for the output
+   ordering
+*/
 	TableNodeList fields;
-	
+
 	TableNodeMap indexedfields;
-	
+
+/* the order isn't relevant for constraints / keys / indexes so any
+   output order will do
+*/
+
 	TableIndexList primary, foreign, index;
+
+/* we can't put the struct into an indexed container without providing
+   a comparison operator
+*/
 
 	int operator<(const SQLTable& other) const;
 
@@ -60,12 +72,6 @@ class SQLTableListManager
 
 		void setState(MgrState state);
 
-		const std::string& tempTable() const { return temptable_.name; }
-
-		std::string& tempConstraint() { return tempconstraint_; }
-		
-		std::string& tempContents() { return tempcontents_; }
-
 		void commit();
 
 		void addTableType();
@@ -74,9 +80,19 @@ class SQLTableListManager
 
 		void print(std::ostream& out) const;
 
+/* the "good practice" says that we should export private members
+   through public methods so we can control the access policy
+*/
+
 		const SQLTableList& tlist() const { return tlist_; }
 
 		const SQLTableRawList& rawtlist() const { return rawtlist_; }
+
+		const std::string& tempTable() const { return temptable_.name; }
+
+		std::string& tempConstraint() { return tempconstraint_; }
+		
+		std::string& tempContents() { return tempcontents_; }
 
 	private:
 
