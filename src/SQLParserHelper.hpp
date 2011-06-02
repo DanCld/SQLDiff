@@ -34,7 +34,7 @@ struct SQLTable {
    output order will do
 */
 
-	TableIndexList primary, foreign, index;
+	TableIndexList primary, foreign, index, unique, fulltext, spatial;
 
 /* we can't put the struct into an indexed container without providing
    a comparison operator
@@ -55,7 +55,10 @@ enum MgrState {
 	FIELD,
 	PRIMARY,
 	FOREIGN,
-	INDEX
+	INDEX,
+	UNIQUE,
+	FULLTEXT,
+	SPATIAL
 };
 
 class SQLTableListManager
@@ -105,6 +108,12 @@ class SQLTableListManager
 		void commitForeign();
 
 		void commitIndex();
+
+		void commitUnique();
+
+		void commitFulltext();
+
+		void commitSpatial();
 
 		SQLTableList tlist_;
 

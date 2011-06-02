@@ -85,6 +85,8 @@ void
 SQLTableListManager::addNewField(const std::string& tfield)
 {
 	tempfield_.assign(tfield);
+	std::transform(tempfield_.begin(), tempfield_.end(), tempfield_.begin(), ::tolower);
+
 	lastState_ = FIELD;
 	tempcontents_.clear();
 }
@@ -132,6 +134,21 @@ SQLTableListManager::commit()
 			commitIndex();
 			break;
 		}
+		case UNIQUE:
+		{
+			commitUnique();
+			break;
+		}
+		case FULLTEXT:
+		{
+			commitFulltext();
+			break;
+		}
+		case SPATIAL:
+		{
+			commitSpatial();
+			break;
+		}
 		default:
 		{
 			throw std::logic_error("SQLTableListManager:commit() called on DUMMY last state!");
@@ -144,6 +161,7 @@ SQLTableListManager::commit()
 void
 SQLTableListManager::addTableType()
 {
+	std::transform(tempcontents_.begin(), tempcontents_.end(), tempcontents_.begin(), ::tolower);
 	temptable_.tabletype.assign(tempcontents_);
 }
 
@@ -170,6 +188,24 @@ void
 SQLTableListManager::commitIndex()
 {
 	temptable_.index.insert(std::make_pair<std::string, std::string>(tempcontents_, ""));
+}
+
+void
+SQLTableListManager::commitUnique()
+{
+	temptable_.unique.insert(std::make_pair<std::string, std::string>(tempcontents_, tempconstraint_));
+}
+
+void
+SQLTableListManager::commitFulltext()
+{
+	temptable_.fulltext.insert(std::make_pair<std::string, std::string>(tempcontents_, ""));
+}
+
+void
+SQLTableListManager::commitSpatial()
+{
+	temptable_.spatial.insert(std::make_pair<std::string, std::string>(tempcontents_, ""));
 }
 
 void

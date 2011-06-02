@@ -63,9 +63,9 @@ csep	[ \t]*
 <TABLEFIELD>(?i:foreign{sep}key) { sm.setState(FOREIGN); BEGIN FDEFINITION; }
 <TABLEFIELD>(?i:key{csep}) { sm.setState(INDEX); BEGIN FDEFINITION; }
 <TABLEFIELD>(?i:index{csep}) { sm.setState(INDEX); BEGIN FDEFINITION; }
-<TABLEFIELD>(?i:unique{csep}) { std::cerr << "WARNING: unique constraints not yet supported! (table: \"" << sm.tempTable() << "\")" << std::endl; BEGIN SKIPLINE; }
-<TABLEFIELD>(?i:fulltext{csep}) { std::cerr << "WARNING: fulltext constraints not yet supported! (table: \"" << sm.tempTable() << "\")" << std::endl; BEGIN SKIPLINE; }
-<TABLEFIELD>(?i:spatial{csep}) { std::cerr << "WARNING: spatial constraints not yet supported (table: \"" << sm.tempTable() << "\")" << std::endl; BEGIN SKIPLINE; }
+<TABLEFIELD>(?i:unique{csep}) { sm.setState(UNIQUE); std::cerr << "WARNING: unique constraints not yet supported! (table: \"" << sm.tempTable() << "\")" << std::endl; BEGIN FDEFINITION; }
+<TABLEFIELD>(?i:fulltext{csep}) { sm.setState(FULLTEXT); std::cerr << "WARNING: fulltext constraints not yet supported! (table: \"" << sm.tempTable() << "\")" << std::endl; BEGIN FDEFINITION; }
+<TABLEFIELD>(?i:spatial{csep}) { sm.setState(SPATIAL); std::cerr << "WARNING: spatial constraints not yet supported (table: \"" << sm.tempTable() << "\")" << std::endl; BEGIN FDEFINITION; }
 <TABLEFIELD>(?i:check{csep}) { std::cerr << "WARNING: checks not yet supported (table: \"" << sm.tempTable() << "\")" << std::endl; BEGIN SKIPLINE; }
 <TABLEFIELD>\`{alpha}\` { sm.addNewField(yytext); BEGIN FDEFINITION; }
 <TABLEFIELD>{alpha} { sm.addNewField(yytext); BEGIN FDEFINITION; }
@@ -75,7 +75,7 @@ csep	[ \t]*
 
 <FCONSTRAINT>(?i:primary{sep}key) { sm.setState(PRIMARY); BEGIN FDEFINITION; }
 <FCONSTRAINT>(?i:foreign{sep}key) { sm.setState(FOREIGN); BEGIN FDEFINITION; }
-<FCONSTRAINT>(?i:unique{csep}) { std::cerr << "WARNING: unique constraints not yet supported! (table: \"" << sm.tempTable() << "\")" << std::endl; BEGIN SKIPLINE; }
+<FCONSTRAINT>(?i:unique{csep}) { sm.setState(UNIQUE); std::cerr << "WARNING: unique constraints not yet supported! (table: \"" << sm.tempTable() << "\")" << std::endl; BEGIN FDEFINITION; }
 <FCONSTRAINT>\`{alpha}\` { 
 	if (sm.tempConstraint().size() > 0)
 	{
@@ -94,7 +94,7 @@ csep	[ \t]*
 <FCONSTRAINT>{endln} { }
 <FCONSTRAINT>. { throw std::runtime_error("Unexpected character \"" + std::string(yytext) + "\" in context FCONSTRAINT"); }
 
-<FDEFINITION>(?i:primary{sep}key) { sm.addPrimaryKeyFromField(); }
+<FDEFINITION>(?i:primary{sep}key{csep}) { sm.addPrimaryKeyFromField(); }
 <FDEFINITION>{alphaext} { sm.tempContents().append(yytext); }
 <FDEFINITION>\( { sm.tempContents().append(yytext);  BEGIN FDEFINITIONP; }
 <FDEFINITION>{csep}, { sm.commit(); BEGIN TABLEFIELD ; }
