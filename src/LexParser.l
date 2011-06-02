@@ -23,6 +23,9 @@ static SQLTableListManager sm;
 %x FDEFINITIONP
 %x FDEFINITIONS
 %x SKIPLINE
+%x SKIPLINEP
+%x SKIPLINES
+
 %x ENDTABLE
 
 alpha	[a-zA-Z][a-zA-Z0-9_]*
@@ -55,6 +58,7 @@ csep	[ \t]*
 <TABLEFIELD>(?i:unique{csep}) { std::cerr << "WARNING: unique constraints not yet supported! (table: " << sm.tempTable() << " )" << std::endl; BEGIN SKIPLINE; }
 <TABLEFIELD>(?i:fulltext{csep}) { std::cerr << "WARNING: fulltext constraints not yet supported! (table: " << sm.tempTable() << " )" << std::endl; BEGIN SKIPLINE; }
 <TABLEFIELD>(?i:spatial{csep}) { std::cerr << "WARNING: spatial constraints not yet supported (table: " << sm.tempTable() << " )" << std::endl; BEGIN SKIPLINE; }
+<TABLEFIELD>(?i:check{csep}) { std::cerr << "WARNING: checks not yet supported (table: " << sm.tempTable() << " )" << std::endl; BEGIN SKIPLINE; }
 
 <TABLEFIELD>{alpha} { sm.addNewField(yytext); BEGIN FDEFINITION; }
 <TABLEFIELD>[\`\r\n] { }
@@ -92,9 +96,20 @@ csep	[ \t]*
 <ENDTABLE>{endln} { }
 <ENDTABLE>. { }
 
+<SKIPLINE>\( { BEGIN SKIPLINEP; }
+<SKIPLINE>[\'\"] { BEGIN SKIPLINES; }
 <SKIPLINE>, { BEGIN TABLEFIELD; }
+<SKIPLINE>\) { BEGIN ENDTABLE; }
 <SKIPLINE>{endln} { }
 <SKIPLINE>. { }
+
+<SKIPLINEP>\) { BEGIN SKIPLINE; }
+<SKIPLINEP>{endln} { }
+<SKIPLINEP>. { }
+
+<SKIPLINES>[\'\"] { BEGIN SKIPLINE; }
+<SKIPLINES>{endln} { }
+<SKIPLINES>. { }
 
 %%
 
