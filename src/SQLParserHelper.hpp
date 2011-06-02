@@ -59,10 +59,12 @@ class SQLTableListManager
 		void addNewField(const std::string& tfield);
 
 		void setState(MgrState state);
+		
+		std::string& tempContents() { return tempcontents_; }
 
-		void commit(const std::string& contents);
+		void commit();
 
-		void addTableType(const std::string& ttype);
+		void addTableType();
 
 		void clear();
 
@@ -74,13 +76,13 @@ class SQLTableListManager
 
 	private:
 
-		void commitField(const std::string& contents);
+		void commitField();
 
-		void commitPrimary(const std::string& contents);
+		void commitPrimary();
 
-		void commitForeign(const std::string& contents);
+		void commitForeign();
 
-		void commitIndex(const std::string& contents);
+		void commitIndex();
 
 		SQLTableList tlist_;
 
@@ -89,6 +91,8 @@ class SQLTableListManager
 		SQLTable temptable_;
 
 		std::string tempfield_;
+
+		std::string tempcontents_;
 
 		MgrState lastState_;
 };

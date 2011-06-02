@@ -59,6 +59,7 @@ SQLTableListManager::SQLTableListManager()
 :tlist_(),
 temptable_(),
 tempfield_(),
+tempcontents_(),
 lastState_(DUMMY)
 {
 }
@@ -83,40 +84,42 @@ SQLTableListManager::addNewField(const std::string& tfield)
 {
 	tempfield_.assign(tfield);
 	lastState_ = FIELD;
+	tempcontents_.clear();
 }
 
 void
 SQLTableListManager::setState(MgrState state)
 {
 	lastState_ = state;
+	tempcontents_.clear();
 }
 
 void
-SQLTableListManager::commit(const std::string& contents)
+SQLTableListManager::commit()
 {
-	std::string::size_type last=contents.find_last_not_of(' ');
-	std::string trcontents(contents.substr(0, last + 1));
+	std::string::size_type last=tempcontents_.find_last_not_of(' ');
+	tempcontents_.assign(tempcontents_.substr(0, last + 1));
 
 	switch(lastState_)
 	{
 		case FIELD:
 		{
-			commitField(trcontents);
+			commitField();
 			break;
 		}
 		case PRIMARY:
 		{
-			commitPrimary(trcontents);
+			commitPrimary();
 			break;
 		}
 		case FOREIGN:
 		{
-			commitForeign(trcontents);
+			commitForeign();
 			break;
 		}
 		case INDEX:
 		{
-			commitIndex(trcontents);
+			commitIndex();
 			break;
 		}
 		default:
@@ -128,34 +131,34 @@ SQLTableListManager::commit(const std::string& contents)
 }
 
 void
-SQLTableListManager::addTableType(const std::string& ttype)
+SQLTableListManager::addTableType()
 {
-	temptable_.tabletype.assign(ttype);
+	temptable_.tabletype.assign(tempcontents_);
 }
 
 void
-SQLTableListManager::commitField(const std::string& contents)
+SQLTableListManager::commitField()
 {
 	temptable_.fields.push_back(tempfield_);
-	temptable_.indexedfields.insert(std::make_pair<std::string,std::string>(tempfield_, contents));
+	temptable_.indexedfields.insert(std::make_pair<std::string,std::string>(tempfield_, tempcontents_));
 }
 
 void
-SQLTableListManager::commitPrimary(const std::string& contents)
+SQLTableListManager::commitPrimary()
 {
-	temptable_.primary.insert(contents);
+	temptable_.primary.insert(tempcontents_);
 }
 
 void 
-SQLTableListManager::commitForeign(const std::string& contents)
+SQLTableListManager::commitForeign()
 {
-	temptable_.foreign.insert(contents);
+	temptable_.foreign.insert(tempcontents_);
 }
 
 void
-SQLTableListManager::commitIndex(const std::string& contents)
+SQLTableListManager::commitIndex()
 {
-	temptable_.index.insert(contents);
+	temptable_.index.insert(tempcontents_);
 }
 
 void
@@ -165,6 +168,7 @@ SQLTableListManager::clear()
 	rawtlist_.clear();
 	temptable_.clear();
 	tempfield_.clear();
+	tempcontents_.clear();
 	lastState_ = DUMMY;
 }
 
