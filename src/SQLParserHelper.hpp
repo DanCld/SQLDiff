@@ -16,7 +16,7 @@ namespace sqlfileparser
 
 typedef std::deque<std::string> TableNodeList;
 typedef std::map<std::string, std::string> TableNodeMap;
-typedef std::set<std::string> TableIndexList;
+typedef std::set<std::pair<std::string, std::string> > TableIndexList;
 
 struct SQLTable {
 
@@ -62,6 +62,8 @@ class SQLTableListManager
 
 		const std::string& tempTable() const { return temptable_.name; }
 
+		std::string& tempConstraint() { return tempconstraint_; }
+		
 		std::string& tempContents() { return tempcontents_; }
 
 		void commit();
@@ -93,6 +95,8 @@ class SQLTableListManager
 		SQLTable temptable_;
 
 		std::string tempfield_;
+
+		std::string tempconstraint_;
 
 		std::string tempcontents_;
 

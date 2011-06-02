@@ -50,11 +50,11 @@ class SQLFileParser {
 
 		void printAlterDropPrimaryCommand(const SQLTable& ref);
 
-		void printAlterAddPrimaryCommand(const SQLTable& ref, const std::string& desc);
+		void printAlterAddPrimaryCommand(const SQLTable& ref, const std::pair<std::string, std::string>& desc);
 
-		void printAlterDropForeignCommand(const SQLTable& ref, const std::string& desc);
+		void printAlterDropForeignCommand(const SQLTable& ref, const std::pair<std::string, std::string>& desc);
 
-		void printAlterAddForeignCommand(const SQLTable& ref, const std::string& desc);
+		void printAlterAddForeignCommand(const SQLTable& ref, const std::pair<std::string, std::string>& desc);
 
 		void printAlterDropIndexCommand(const SQLTable& ref, const std::string& desc);
 

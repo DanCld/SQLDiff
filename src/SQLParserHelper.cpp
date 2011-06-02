@@ -39,17 +39,17 @@ SQLTable::print(std::ostream& out) const
 
 	for(TableIndexList::const_iterator pit = primary.begin(); pit != primary.end(); ++pit)
 	{
-		out << "PRIMARY: " << *pit << std::endl;
+		out << "PRIMARY: " << pit->first << std::endl;
 	}
 
 	for(TableIndexList::const_iterator oit = foreign.begin(); oit != foreign.end(); ++oit)
 	{
-		out << "FOREIGN: " << *oit << std::endl;
+		out << "FOREIGN: " << oit->first << std::endl;
 	}
 
 	for(TableIndexList::const_iterator iit = index.begin(); iit != index.end(); ++iit)
 	{
-		out << "INDEX: " << *iit << std::endl;
+		out << "INDEX: " << iit->first << std::endl;
 	}
 
 	out << "TYPE: " << tabletype << std::endl;
@@ -59,6 +59,7 @@ SQLTableListManager::SQLTableListManager()
 :tlist_(),
 temptable_(),
 tempfield_(),
+tempconstraint_(),
 tempcontents_(),
 lastState_(DUMMY)
 {
@@ -128,6 +129,7 @@ SQLTableListManager::commit()
 		}
 	}
 	lastState_ = DUMMY;
+	tempconstraint_.clear();
 }
 
 void
@@ -146,19 +148,19 @@ SQLTableListManager::commitField()
 void
 SQLTableListManager::commitPrimary()
 {
-	temptable_.primary.insert(tempcontents_);
+	temptable_.primary.insert(std::make_pair<std::string, std::string>(tempcontents_, tempconstraint_));
 }
 
 void 
 SQLTableListManager::commitForeign()
 {
-	temptable_.foreign.insert(tempcontents_);
+	temptable_.foreign.insert(std::make_pair<std::string, std::string>(tempcontents_, tempconstraint_));
 }
 
 void
 SQLTableListManager::commitIndex()
 {
-	temptable_.index.insert(tempcontents_);
+	temptable_.index.insert(std::make_pair<std::string, std::string>(tempcontents_, ""));
 }
 
 void
@@ -168,6 +170,7 @@ SQLTableListManager::clear()
 	rawtlist_.clear();
 	temptable_.clear();
 	tempfield_.clear();
+	tempconstraint_.clear();
 	tempcontents_.clear();
 	lastState_ = DUMMY;
 }
