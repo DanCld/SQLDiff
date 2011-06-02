@@ -5,6 +5,7 @@
 
 #include "SQLParserHelper.hpp"
 
+#include <iostream>
 #include <stdexcept>
 
 using namespace sqlfileparser;
@@ -17,13 +18,15 @@ static SQLTableListManager sm;
 
 %x TABLENAME
 %x TABLEFIELD
+%x FCONSTRAINT
 %x FDEFINITION
 %x FDEFINITIONP
 %x FDEFINITIONS
+%x SKIPLINE
 %x ENDTABLE
 
 alpha	[a-zA-Z][a-zA-Z0-9_]*
-alphaext	[a-zA-Z0-9_]+
+alphaext	[a-zA-Z0-9_`]+
 sep	[ \t]+
 endln	[\r\n]+
 csep	[ \t]*
@@ -36,6 +39,7 @@ csep	[ \t]*
 
 . { }
 
+<TABLENAME>(?i:if{sep}not{sep}exists) { }
 <TABLENAME>{alpha} { sm.addNewTable(yytext); }
 <TABLENAME>\( { BEGIN TABLEFIELD; }
 <TABLENAME>\) { throw std::runtime_error("Unexpected character " + std::string(yytext) + " in context TABLENAME"); }
@@ -43,12 +47,26 @@ csep	[ \t]*
 <TABLENAME>. { }
 
 <TABLEFIELD>{sep} { }
-<TABLEFIELD>primary{sep}key { sm.setState(PRIMARY); BEGIN FDEFINITION; }
-<TABLEFIELD>foreign{sep}key { sm.setState(FOREIGN); BEGIN FDEFINITION; }
-<TABLEFIELD>index{csep} { sm.setState(INDEX); BEGIN FDEFINITION; }
+<TABLEFIELD>(?i:constraint) { BEGIN FCONSTRAINT; }
+<TABLEFIELD>(?i:primary{sep}key) { sm.setState(PRIMARY); BEGIN FDEFINITION; }
+<TABLEFIELD>(?i:foreign{sep}key) { sm.setState(FOREIGN); BEGIN FDEFINITION; }
+<TABLEFIELD>(?i:key{csep}) { sm.setState(INDEX); BEGIN FDEFINITION; }
+<TABLEFIELD>(?i:index{csep}) { sm.setState(INDEX); BEGIN FDEFINITION; }
+<TABLEFIELD>(?i:unique{csep}) { std::cerr << "WARNING: unique constraints not yet supported! (table: " << sm.tempTable() << " )" << std::endl; BEGIN SKIPLINE; }
+<TABLEFIELD>(?i:fulltext{csep}) { std::cerr << "WARNING: fulltext constraints not yet supported! (table: " << sm.tempTable() << " )" << std::endl; BEGIN SKIPLINE; }
+<TABLEFIELD>(?i:spatial{csep}) { std::cerr << "WARNING: spatial constraints not yet supported (table: " << sm.tempTable() << " )" << std::endl; BEGIN SKIPLINE; }
+
 <TABLEFIELD>{alpha} { sm.addNewField(yytext); BEGIN FDEFINITION; }
 <TABLEFIELD>[\`\r\n] { }
 <TABLEFIELD>. { throw std::runtime_error("Unexpected character " + std::string(yytext) + " in context TABLEFIELD"); }
+
+<FCONSTRAINT>{sep} { }
+<FCONSTRAINT>(?i:primary{sep}key) { sm.setState(PRIMARY); BEGIN FDEFINITION; }
+<FCONSTRAINT>(?i:foreign{sep}key) { sm.setState(FOREIGN); BEGIN FDEFINITION; }
+<FCONSTRAINT>(?i:unique{csep}) { std::cerr << "WARNING: unique constraints not yet supported! (table: " << sm.tempTable() << " )" << std::endl; BEGIN SKIPLINE; }
+<FCONSTRAINT>{alpha} { std::cerr << "WARNING: constraints with symbols not yet supported! (table: " << sm.tempTable() << " )" << std::endl; }
+<FCONSTRAINT>[\`\r\n] { }
+<FCONSTRAINT>. { throw std::runtime_error("Unexpected character " + std::string(yytext) + " in context FCONSTRAINT"); }
 
 <FDEFINITION>{alphaext} { sm.tempContents().append(yytext); }
 <FDEFINITION>\( { sm.tempContents().append(yytext);  BEGIN FDEFINITIONP; }
@@ -68,11 +86,15 @@ csep	[ \t]*
 <FDEFINITIONS>. { sm.tempContents().append(yytext); }
 
 <ENDTABLE>; { sm.addTableType(); sm.commitTable(); BEGIN INITIAL; }
-<ENDTABLE>type { sm.tempContents().clear(); }
+<ENDTABLE>(?i:type) { sm.tempContents().clear(); }
 <ENDTABLE>{alphaext} { sm.tempContents().append(yytext); }
 <ENDTABLE>{sep} { if (sm.tempContents().size() > 0) sm.tempContents().append(" "); }
 <ENDTABLE>{endln} { }
 <ENDTABLE>. { }
+
+<SKIPLINE>, { BEGIN TABLEFIELD; }
+<SKIPLINE>{endln} { }
+<SKIPLINE>. { }
 
 %%
 

@@ -59,7 +59,9 @@ class SQLTableListManager
 		void addNewField(const std::string& tfield);
 
 		void setState(MgrState state);
-		
+
+		const std::string& tempTable() const { return temptable_.name; }
+
 		std::string& tempContents() { return tempcontents_; }
 
 		void commit();
