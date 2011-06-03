@@ -146,6 +146,10 @@ SQLTableListManager::commit()
 	{
 		tempcontents_.append(" " + fieldmodifier_);
 	}
+	else
+	{
+		tempcontents_.append(" null");
+	}
 
 	std::transform(tempcontents_.begin(), tempcontents_.end(), tempcontents_.begin(), ::tolower);
 
