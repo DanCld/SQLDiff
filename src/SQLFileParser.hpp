@@ -39,6 +39,15 @@ class SQLFileParser {
 
 		void parseIndex(const SQLTable& ref1, const SQLTable& ref2);
 
+		void parseUnique(const SQLTable& ref1, const SQLTable& ref2);
+
+		void parseFullText(const SQLTable& ref1, const SQLTable& ref2);
+
+		void parseSpatial(const SQLTable& ref1, const SQLTable& ref2);
+
+
+/* these are just mysql query printers */
+
 		void printCreateTableCommand(const SQLTable& ref);
 
 		void printDropTableCommand(const SQLTable& ref);
@@ -60,6 +69,19 @@ class SQLFileParser {
 		void printAlterDropIndexCommand(const SQLTable& ref, const std::string& desc);
 
 		void printAlterAddIndexCommand(const SQLTable& ref, const std::string& desc);
+
+		void printAlterDropUniqueCommand(const SQLTable& ref, const std::string& desc);
+
+		void printAlterAddUniqueCommand(const SQLTable& ref, const std::pair<std::string, std::string>& desc);
+
+		void printAlterDropFullTextCommand(const SQLTable& ref, const std::string& desc);
+
+		void printAlterAddFullTextCommand(const SQLTable& ref, const std::string& desc);
+
+		void printAlterDropSpatialCommand(const SQLTable& ref, const std::string& desc);
+
+		void printAlterAddSpatialCommand(const SQLTable& ref, const std::string& desc);
+
 
 /* these data structures must be allocated and initialized outside this class;
    please note the const reference declaration for both

@@ -26,6 +26,9 @@ SQLTable::clear()
 	primary.clear();
 	foreign.clear();
 	index.clear();
+	unique.clear();
+	fulltext.clear();
+	spatial.clear();
 }
 
 void
@@ -51,6 +54,21 @@ SQLTable::print(std::ostream& out) const
 	for(TableIndexList::const_iterator iit = index.begin(); iit != index.end(); ++iit)
 	{
 		out << "INDEX: " << iit->first << std::endl;
+	}
+
+	for(TableIndexList::const_iterator uit = unique.begin(); uit != unique.end(); ++uit)
+	{
+		out << "UNIQUE: " << uit->first << std::endl;
+	}
+
+	for(TableIndexList::const_iterator ftit = fulltext.begin(); ftit != fulltext.end(); ++ftit)
+	{
+		out << "FULLTEXT: " << ftit->first << std::endl;
+	}
+
+	for(TableIndexList::const_iterator sit = spatial.begin(); sit != spatial.end(); ++sit)
+	{
+		out << "SPATIAL: " << sit->first << std::endl;
 	}
 
 	out << "TYPE: " << tabletype << std::endl;
