@@ -124,6 +124,7 @@ csep	[ \t]*
 	throw std::runtime_error("Unexpected character \"" + std::string(yytext) + "\" on line " + linestr.str() + " in context FCONSTRAINT");
 }
 
+<FDEFINITION>(?i:key) { }
 <FDEFINITION>(?i:primary{sep}key{csep}) { sm.addPrimaryKeyFromField(); }
 <FDEFINITION>int{csep}\( { sm.tempContents().append("int"); wasInt = true; BEGIN SKIPPAR; }
 <FDEFINITION>smallint{csep}\( { sm.tempContents().append("smallint"); wasInt = true; BEGIN SKIPPAR; }

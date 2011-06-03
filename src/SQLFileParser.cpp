@@ -680,7 +680,7 @@ SQLFileParser::printAlterAddIndexCommand(const SQLTable& ref, const std::string&
 	std::ostringstream mstr_;
 
 	mstr_ << "alter table " << ref.name
-		<< " add index " << desc << ";"
+		<< " add index (" << desc << ");"
 		<< std::endl << std::endl;
 
 	keyCommands_.at(ref.name).append(mstr_.str());
@@ -706,7 +706,7 @@ SQLFileParser::printAlterAddUniqueCommand(const SQLTable& ref, const std::pair<s
 	mstr_ << "alter table " << ref.name
 		<< " add"
 		<< ((desc.second.size() > 0)?" constraint " + desc.second:"")
-		<< " unique " << desc.first << ";"
+		<< " unique (" << desc.first << ");"
 		<< std::endl << std::endl;
 
 	keyCommands_.at(ref.name).append(mstr_.str());
@@ -730,7 +730,7 @@ SQLFileParser::printAlterAddFullTextCommand(const SQLTable& ref, const std::stri
 	std::ostringstream mstr_;
 
 	mstr_ << "alter table " << ref.name
-		<< " add fulltext " << desc << ";"
+		<< " add fulltext (" << desc << ");"
 		<< std::endl << std::endl;
 
 	keyCommands_.at(ref.name).append(mstr_.str());
@@ -754,7 +754,7 @@ SQLFileParser::printAlterAddSpatialCommand(const SQLTable& ref, const std::strin
 	std::ostringstream mstr_;
 
 	mstr_ << "alter table " << ref.name
-		<< " add spatial " << desc << ";"
+		<< " add spatial (" << desc << ");"
 		<< std::endl << std::endl;
 
 	keyCommands_.at(ref.name).append(mstr_.str());

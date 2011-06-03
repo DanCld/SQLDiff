@@ -210,7 +210,17 @@ SQLTableListManager::commitPrimary()
 void 
 SQLTableListManager::commitForeign()
 {
+	
+	std::string::size_type first=tempcontents_.find_first_of('('), last=tempcontents_.find_first_of(')');
+	std::string indexfield(tempcontents_.substr(first + 1, last - first - 1));
+
 	temptable_.foreign.insert(std::make_pair<std::string, std::string>(tempcontents_, tempconstraint_));
+
+	TableIndexList::iterator it = temptable_.index.find(std::make_pair<std::string, std::string>(indexfield, ""));
+	if (it != temptable_.index.end())
+	{
+		temptable_.index.erase(it);
+	}
 }
 
 void
@@ -218,9 +228,8 @@ SQLTableListManager::commitIndex()
 {
 /* for index name (field) just keep the (field)
 */
-
-	std::string::size_type first=tempcontents_.find_first_of('(');
-	tempcontents_.assign(tempcontents_.substr(first));
+	std::string::size_type first=tempcontents_.find_first_of('('), last=tempcontents_.find_last_of(')');
+	tempcontents_.assign(tempcontents_.substr(first + 1, last - first - 1));
 
 	temptable_.index.insert(std::make_pair<std::string, std::string>(tempcontents_, ""));
 }
@@ -228,6 +237,11 @@ SQLTableListManager::commitIndex()
 void
 SQLTableListManager::commitUnique()
 {
+/* for index name (field) just keep the (field)
+*/
+	std::string::size_type first=tempcontents_.find_first_of('('), last=tempcontents_.find_last_of(')');
+	tempcontents_.assign(tempcontents_.substr(first + 1, last - first - 1));
+
 	temptable_.unique.insert(std::make_pair<std::string, std::string>(tempcontents_, tempconstraint_));
 }
 
@@ -236,9 +250,8 @@ SQLTableListManager::commitFulltext()
 {
 /* for index name (field) just keep the (field)
 */
-
-	std::string::size_type first=tempcontents_.find_first_of('(');
-	tempcontents_.assign(tempcontents_.substr(first));
+	std::string::size_type first=tempcontents_.find_first_of('('), last=tempcontents_.find_last_of(')');
+	tempcontents_.assign(tempcontents_.substr(first + 1, last - first - 1));
 
 	temptable_.fulltext.insert(std::make_pair<std::string, std::string>(tempcontents_, ""));
 }
@@ -248,9 +261,8 @@ SQLTableListManager::commitSpatial()
 {
 /* for index name (field) just keep the (field)
 */
-
-	std::string::size_type first=tempcontents_.find_first_of('(');
-	tempcontents_.assign(tempcontents_.substr(first));
+	std::string::size_type first=tempcontents_.find_first_of('('), last=tempcontents_.find_last_of(')');
+	tempcontents_.assign(tempcontents_.substr(first + 1, last - first - 1));
 
 	temptable_.spatial.insert(std::make_pair<std::string, std::string>(tempcontents_, ""));
 }
