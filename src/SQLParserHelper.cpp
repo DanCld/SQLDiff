@@ -87,7 +87,12 @@ lastState_(DUMMY)
 void
 SQLTableListManager::addNewTable(const std::string& tname)
 {
-	temptable_.name.assign(tname);
+/* cut the ` character
+*/
+
+	std::string::size_type first=tname.find_first_not_of('`'), last=tname.find_last_not_of('`');
+
+	temptable_.name.assign(tname.substr(first, last - first + 1));
 }
 
 void
@@ -102,7 +107,13 @@ SQLTableListManager::commitTable()
 void
 SQLTableListManager::addNewField(const std::string& tfield)
 {
-	tempfield_.assign(tfield);
+/* remove the ` character and go to lowercase
+*/
+
+	std::string::size_type first=tfield.find_first_not_of('`'), last=tfield.find_last_not_of('`');
+
+	tempfield_.assign(tfield.substr(first, last - first + 1));
+
 	std::transform(tempfield_.begin(), tempfield_.end(), tempfield_.begin(), ::tolower);
 
 	lastState_ = FIELD;
@@ -125,8 +136,8 @@ SQLTableListManager::addPrimaryKeyFromField()
 void
 SQLTableListManager::commit()
 {
-	std::string::size_type last=tempcontents_.find_last_not_of(' ');
-	tempcontents_.assign(tempcontents_.substr(0, last + 1));
+	std::string::size_type first=tempcontents_.find_first_not_of(' '), last=tempcontents_.find_last_not_of(' ');
+	tempcontents_.assign(tempcontents_.substr(first, last - first + 1));
 
 	std::transform(tempcontents_.begin(), tempcontents_.end(), tempcontents_.begin(), ::tolower);
 
@@ -205,6 +216,12 @@ SQLTableListManager::commitForeign()
 void
 SQLTableListManager::commitIndex()
 {
+/* for index name (field) just keep the (field)
+*/
+
+	std::string::size_type first=tempcontents_.find_first_of('(');
+	tempcontents_.assign(tempcontents_.substr(first));
+
 	temptable_.index.insert(std::make_pair<std::string, std::string>(tempcontents_, ""));
 }
 
@@ -217,12 +234,24 @@ SQLTableListManager::commitUnique()
 void
 SQLTableListManager::commitFulltext()
 {
+/* for index name (field) just keep the (field)
+*/
+
+	std::string::size_type first=tempcontents_.find_first_of('(');
+	tempcontents_.assign(tempcontents_.substr(first));
+
 	temptable_.fulltext.insert(std::make_pair<std::string, std::string>(tempcontents_, ""));
 }
 
 void
 SQLTableListManager::commitSpatial()
 {
+/* for index name (field) just keep the (field)
+*/
+
+	std::string::size_type first=tempcontents_.find_first_of('(');
+	tempcontents_.assign(tempcontents_.substr(first));
+
 	temptable_.spatial.insert(std::make_pair<std::string, std::string>(tempcontents_, ""));
 }
 

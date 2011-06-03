@@ -22,6 +22,8 @@ using namespace sqlfileparser;
 
 static unsigned long line;
 static SQLTableListManager sm;
+static int parantLevel;
+static bool wasInt;
 
 %}
 
@@ -33,6 +35,7 @@ static SQLTableListManager sm;
 %x FDEFINITION
 %x FDEFINITIONP
 %x FDEFINITIONS
+%x SKIPPAR
 %x SKIPLINE
 %x SKIPLINEP
 %x SKIPLINES
@@ -55,7 +58,7 @@ csep	[ \t]*
 <TABLENAME>(?i:if{sep}not{sep}exists) { }
 <TABLENAME>\`{alpha}\` { sm.addNewTable(yytext); }
 <TABLENAME>{alpha} { sm.addNewTable(yytext); }
-<TABLENAME>\( { BEGIN TABLEFIELD; }
+<TABLENAME>\( { wasInt = false; BEGIN TABLEFIELD; }
 <TABLENAME>\) {
 	std::ostringstream linestr;
 	linestr << line;
@@ -80,8 +83,8 @@ csep	[ \t]*
 	std::cerr << "WARNING: check ignored (table: \"" << sm.tempTable() << "\", line " << linestr.str() << ")" << std::endl;
 	BEGIN SKIPLINE;
 }
-<TABLEFIELD>\`{alpha}\` { sm.addNewField(yytext); BEGIN FDEFINITION; }
-<TABLEFIELD>{alpha} { sm.addNewField(yytext); BEGIN FDEFINITION; }
+<TABLEFIELD>\`{alpha}\` { sm.addNewField(yytext); wasInt = false; BEGIN FDEFINITION; }
+<TABLEFIELD>{alpha} { sm.addNewField(yytext); wasInt = false; BEGIN FDEFINITION; }
 <TABLEFIELD>{sep} { }
 <TABLEFIELD>[\r]+ { }
 <TABLEFIELD>\n { line++; }
@@ -122,20 +125,41 @@ csep	[ \t]*
 }
 
 <FDEFINITION>(?i:primary{sep}key{csep}) { sm.addPrimaryKeyFromField(); }
+<FDEFINITION>int{csep}\( { sm.tempContents().append("int"); wasInt = true; BEGIN SKIPPAR; }
+<FDEFINITION>smallint{csep}\( { sm.tempContents().append("smallint"); wasInt = true; BEGIN SKIPPAR; }
+<FDEFINITION>bigint{csep}\( { sm.tempContents().append("bigint"); wasInt = true; BEGIN SKIPPAR; }
+<FDEFINITION>tinyint{csep}\( { sm.tempContents().append("tinyint"); wasInt = true; BEGIN SKIPPAR; }
 <FDEFINITION>{alphaext} { sm.tempContents().append(yytext); }
 <FDEFINITION>\( { sm.tempContents().append(yytext);  BEGIN FDEFINITIONP; }
 <FDEFINITION>{csep}, { sm.commit(); BEGIN TABLEFIELD ; }
 <FDEFINITION>{sep} { if (sm.tempContents().size() > 0) sm.tempContents().append(" "); }
 <FDEFINITION>\) { sm.commit(); sm.tempContents().clear(); BEGIN ENDTABLE; }
-<FDEFINITION>[\'\"] { sm.tempContents().append(yytext); BEGIN FDEFINITIONS; }
+<FDEFINITION>` { }
+<FDEFINITION>[\'\"] {
+	if (!wasInt)
+	{
+		sm.tempContents().append(yytext);
+		BEGIN FDEFINITIONS;
+	}
+}
 <FDEFINITION>[\r]+ { }
 <FDEFINITION>\n { line++; }
 <FDEFINITION>. { }
 
-<FDEFINITIONP>\) { sm.tempContents().append(yytext); BEGIN FDEFINITION; }
+<FDEFINITIONP>\( { parantLevel++; }
+<FDEFINITIONP>\) {
+	if (parantLevel == 0)
+	{
+		sm.tempContents().append(yytext);
+		BEGIN FDEFINITION;
+	}
+	else parantLevel--;
+}
+<FDEFINITIONP>,{csep} { if (parantLevel == 0) sm.tempContents().append(","); }
 <FDEFINITIONP>[\r]+ { }
 <FDEFINITIONP>\n { line++; }
-<FDEFINITIONP>. { sm.tempContents().append(yytext); }
+<FDEFINITIONP>` { }
+<FDEFINITIONP>. { if (parantLevel == 0) sm.tempContents().append(yytext); }
 
 <FDEFINITIONS>[\'\"] { sm.tempContents().append(yytext); BEGIN FDEFINITION; }
 <FDEFINITIONS>[\r]+ { }
@@ -153,6 +177,11 @@ csep	[ \t]*
 <ENDTABLE>[\r]+ { }
 <ENDTABLE>\n { line++; }
 <ENDTABLE>. { }
+
+<SKIPPAR>\) { BEGIN FDEFINITION; }
+<SKIPPAR>[\r]+ { }
+<SKIPPAR>\n { line++; }
+<SKIPPAR>. { }
 
 <SKIPLINE>\( { BEGIN SKIPLINEP; }
 <SKIPLINE>[\'\"] { BEGIN SKIPLINES; }
@@ -179,6 +208,8 @@ namespace sqlfileparser
 
 const SQLTableListManager& lexParse(std::istream& input)
 {
+	parantLevel = 0;
+	wasInt = false;
 	line = 1;
 	sm.clear();
 

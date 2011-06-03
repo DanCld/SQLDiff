@@ -269,7 +269,7 @@ SQLFileParser::parseForeign(const SQLTable& ref1, const SQLTable& ref2)
    identification symbol changes
 */
 
-		if (fit1->first == fit2->first && fit1->second != fit2->second)
+		if (fit1->first == fit2->first && fit2->second.size() > 0 && fit1->second != fit2->second)
 		{
 			printAlterDropForeignCommand(ref1, *fit1);
 			printAlterAddForeignCommand(ref2, *fit2);
@@ -364,7 +364,7 @@ SQLFileParser::parseUnique(const SQLTable& ref1, const SQLTable& ref2)
    identification symbol changes
 */
 
-		if (fit1->first == fit2->first && fit1->second != fit2->second)
+		if (fit1->first == fit2->first && fit2->second.size() > 0 && fit1->second != fit2->second)
 		{
 			printAlterDropUniqueCommand(ref1, fit1->first);
 			printAlterAddUniqueCommand(ref2, *fit2);
@@ -629,7 +629,7 @@ SQLFileParser::printAlterDropForeignCommand(const SQLTable& ref, const std::pair
 
 	if (desc.second.size() > 0)
 	{
-		mstr_ << " alter table " << ref.name
+		mstr_ << "alter table " << ref.name
 			<< " drop foreign key " << desc.second << ";"
 			<< std::endl << std::endl;
 	}
