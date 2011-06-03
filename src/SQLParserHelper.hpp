@@ -34,7 +34,7 @@ struct SQLTable {
    output order will do
 */
 
-	TableIndexList primary, foreign, index, unique, fulltext, spatial;
+	TableIndexList primary, foreign, noindex, index, unique, fulltext, spatial;
 
 /* we can't put the struct into an indexed container without providing
    a comparison operator
@@ -99,6 +99,8 @@ class SQLTableListManager
 		
 		std::string& tempContents() { return tempcontents_; }
 
+		std::string& tempModifier() { return fieldmodifier_; }
+
 	private:
 
 		void commitField();
@@ -126,6 +128,8 @@ class SQLTableListManager
 		std::string tempconstraint_;
 
 		std::string tempcontents_;
+
+		std::string fieldmodifier_;
 
 		MgrState lastState_;
 };

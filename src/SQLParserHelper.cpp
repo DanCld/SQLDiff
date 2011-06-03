@@ -80,6 +80,7 @@ temptable_(),
 tempfield_(),
 tempconstraint_(),
 tempcontents_(),
+fieldmodifier_(),
 lastState_(DUMMY)
 {
 }
@@ -118,6 +119,7 @@ SQLTableListManager::addNewField(const std::string& tfield)
 
 	lastState_ = FIELD;
 	tempcontents_.clear();
+	fieldmodifier_.clear();
 }
 
 void
@@ -125,6 +127,7 @@ SQLTableListManager::setState(MgrState state)
 {
 	lastState_ = state;
 	tempcontents_.clear();
+	fieldmodifier_.clear();
 }
 
 void
@@ -138,6 +141,11 @@ SQLTableListManager::commit()
 {
 	std::string::size_type first=tempcontents_.find_first_not_of(' '), last=tempcontents_.find_last_not_of(' ');
 	tempcontents_.assign(tempcontents_.substr(first, last - first + 1));
+	
+	if (fieldmodifier_.size() > 0)
+	{
+		tempcontents_.append(" " + fieldmodifier_);
+	}
 
 	std::transform(tempcontents_.begin(), tempcontents_.end(), tempcontents_.begin(), ::tolower);
 
@@ -220,6 +228,7 @@ SQLTableListManager::commitForeign()
 	if (it != temptable_.index.end())
 	{
 		temptable_.index.erase(it);
+		temptable_.noindex.insert(std::make_pair<std::string, std::string>(indexfield, ""));
 	}
 }
 
@@ -231,7 +240,11 @@ SQLTableListManager::commitIndex()
 	std::string::size_type first=tempcontents_.find_first_of('('), last=tempcontents_.find_last_of(')');
 	tempcontents_.assign(tempcontents_.substr(first + 1, last - first - 1));
 
-	temptable_.index.insert(std::make_pair<std::string, std::string>(tempcontents_, ""));
+	TableIndexList::iterator it = temptable_.noindex.find(std::make_pair<std::string, std::string>(tempcontents_, ""));
+	if (it == temptable_.index.end())
+	{
+		temptable_.index.insert(std::make_pair<std::string, std::string>(tempcontents_, ""));
+	}
 }
 
 void
@@ -276,6 +289,7 @@ SQLTableListManager::clear()
 	tempfield_.clear();
 	tempconstraint_.clear();
 	tempcontents_.clear();
+	fieldmodifier_.clear();
 	lastState_ = DUMMY;
 }
 

@@ -124,12 +124,21 @@ csep	[ \t]*
 	throw std::runtime_error("Unexpected character \"" + std::string(yytext) + "\" on line " + linestr.str() + " in context FCONSTRAINT");
 }
 
-<FDEFINITION>(?i:key) { }
+<FDEFINITION>(?i:key{csep}) { }
+<FDEFINITION>(?i:default{sep}null{csep}) { }
+<FDEFINITION>(?i:default{sep}\'\'{csep}) { }
 <FDEFINITION>(?i:primary{sep}key{csep}) { sm.addPrimaryKeyFromField(); }
+<FDEFINITION>(?i:not{sep}null{csep}) { sm.tempModifier().assign("not null"); }
+<FDEFINITION>(?i:null{csep}) { }
 <FDEFINITION>int{csep}\( { sm.tempContents().append("int"); wasInt = true; BEGIN SKIPPAR; }
 <FDEFINITION>smallint{csep}\( { sm.tempContents().append("smallint"); wasInt = true; BEGIN SKIPPAR; }
 <FDEFINITION>bigint{csep}\( { sm.tempContents().append("bigint"); wasInt = true; BEGIN SKIPPAR; }
 <FDEFINITION>tinyint{csep}\( { sm.tempContents().append("tinyint"); wasInt = true; BEGIN SKIPPAR; }
+<FDEFINITION>text{csep}\( { sm.tempContents().append("text"); BEGIN SKIPPAR; }
+<FDEFINITION>double { sm.tempContents().append(yytext); wasInt = true; }
+<FDEFINITION>boolean { sm.tempContents().append("tinyint"); }
+<FDEFINITION>false { sm.tempContents().append("0"); }
+<FDEFINITION>true { sm.tempContents().append("1"); }
 <FDEFINITION>{alphaext} { sm.tempContents().append(yytext); }
 <FDEFINITION>\( { sm.tempContents().append(yytext);  BEGIN FDEFINITIONP; }
 <FDEFINITION>{csep}, { sm.commit(); BEGIN TABLEFIELD ; }
