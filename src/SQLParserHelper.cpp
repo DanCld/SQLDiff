@@ -88,7 +88,7 @@ lastState_(DUMMY)
 void
 SQLTableListManager::addNewTable(const std::string& tname)
 {
-/* cut the ` character
+/* cut the ` character from table name
 */
 
 	std::string::size_type first=tname.find_first_not_of('`'), last=tname.find_last_not_of('`');
@@ -108,7 +108,7 @@ SQLTableListManager::commitTable()
 void
 SQLTableListManager::addNewField(const std::string& tfield)
 {
-/* remove the ` character and go to lowercase
+/* remove the ` character from field description (the lexer already does this for name) and go to lowercase
 */
 
 	std::string::size_type first=tfield.find_first_not_of('`'), last=tfield.find_last_not_of('`');
@@ -141,15 +141,6 @@ SQLTableListManager::commit()
 {
 	std::string::size_type first=tempcontents_.find_first_not_of(' '), last=tempcontents_.find_last_not_of(' ');
 	tempcontents_.assign(tempcontents_.substr(first, last - first + 1));
-	
-	if (fieldmodifier_.size() > 0)
-	{
-		tempcontents_.append(" " + fieldmodifier_);
-	}
-	else
-	{
-		tempcontents_.append(" null");
-	}
 
 	std::transform(tempcontents_.begin(), tempcontents_.end(), tempcontents_.begin(), ::tolower);
 
@@ -192,7 +183,7 @@ SQLTableListManager::commit()
 		}
 		default:
 		{
-			throw std::logic_error("SQLTableListManager:commit() called on DUMMY last state!");
+			throw std::logic_error("SQLTableListManager:commit() called on DUMMY state!");
 		}
 	}
 	lastState_ = DUMMY;
@@ -209,6 +200,18 @@ SQLTableListManager::addTableType()
 void
 SQLTableListManager::commitField()
 {
+/* field modifier can be either NULL or NOT NULL
+   we need to explicitly put it in order to decide if a field has changed its NULL-related property
+*/
+	if (fieldmodifier_.size() > 0)
+	{
+		tempcontents_.append(" " + fieldmodifier_);
+	}
+	else
+	{
+		tempcontents_.append(" null");
+	}
+
 	temptable_.fields.push_back(tempfield_);
 	temptable_.indexedfields.insert(std::make_pair<std::string,std::string>(tempfield_, tempcontents_));
 }
@@ -216,17 +219,57 @@ SQLTableListManager::commitField()
 void
 SQLTableListManager::commitPrimary()
 {
+/* MySQL enforces the following detail: the fields that form the primary key
+   are NOT NULL regardless of what */
+
+	std::deque<std::string> primaryFields;
+	std::string::size_type ind = 1, prev = 1, tsiz = tempcontents_.size();
+	while (prev < tempcontents_.size())
+	{
+		ind = tempcontents_.find(',', prev);
+		if (ind != std::string::npos)
+		{
+			primaryFields.push_back(tempcontents_.substr(prev, ind - prev));
+			prev = ind + 1;
+		}
+		else
+		{
+			/* the primary key ends in ), we have to jump over this one too */
+			primaryFields.push_back(tempcontents_.substr(prev, tsiz - prev - 1));
+			break;
+		}
+	}
+
+/* Now that we have the field list let's default these fields from NULL to NOT NULL */
+
+	for (std::deque<std::string>::const_iterator it = primaryFields.begin() ; it != primaryFields.end() ; ++it)
+	{
+		std::string cfield(temptable_.indexedfields.at(*it));
+
+		if (cfield.find("not null", 0) == std::string::npos)
+		{
+			std::string::size_type nullpos = cfield.find(" null", 0);
+			/* std::string::npos is also ok, we take the whole string */
+			std::string cfieldmod = cfield.substr(0, nullpos) + " not null";
+			temptable_.indexedfields.at(*it).assign(cfieldmod);
+		}
+	}
+
 	temptable_.primary.insert(std::make_pair<std::string, std::string>(tempcontents_, tempconstraint_));
 }
 
 void 
 SQLTableListManager::commitForeign()
 {
-	
+/* Let's remove the ( ) and just keep the field name */
+
 	std::string::size_type first=tempcontents_.find_first_of('('), last=tempcontents_.find_first_of(')');
 	std::string indexfield(tempcontents_.substr(first + 1, last - first - 1));
 
 	temptable_.foreign.insert(std::make_pair<std::string, std::string>(tempcontents_, tempconstraint_));
+
+/* MySQL dumps contain both the index and the foreign key over the same field;
+   We just need the foreign key as the index is created by default (and can't be dropped on its own) */
 
 	TableIndexList::iterator it = temptable_.index.find(std::make_pair<std::string, std::string>(indexfield, ""));
 	if (it != temptable_.index.end())
@@ -244,6 +287,8 @@ SQLTableListManager::commitIndex()
 	std::string::size_type first=tempcontents_.find_first_of('('), last=tempcontents_.find_last_of(')');
 	tempcontents_.assign(tempcontents_.substr(first + 1, last - first - 1));
 
+/* Let's check if we are to add the index as we might have already encountered a foreign key on this field
+*/
 	TableIndexList::iterator it = temptable_.noindex.find(std::make_pair<std::string, std::string>(tempcontents_, ""));
 	if (it == temptable_.index.end())
 	{

@@ -34,7 +34,8 @@ static bool wasInt;
 %x FCONSTRAINT
 %x FDEFINITION
 %x FDEFINITIONP
-%x FDEFINITIONS
+%x FDEFINITIONS1
+%x FDEFINITIONS2
 %x SKIPPAR
 %x SKIPLINE
 %x SKIPLINEP
@@ -45,6 +46,7 @@ static bool wasInt;
 alpha	[a-zA-Z][a-zA-Z0-9_]*
 alphaext	[a-zA-Z0-9_]+
 alphaexteq	[a-zA-Z0-9_`=]+
+dtime [1-9][0-9]{3}-[0-9]{2}-[0-9]{2}[ ][0-9]{2}\:[0-9]{2}\:[0-9]{2}
 sep	[ \t]+
 csep	[ \t]*
 
@@ -139,17 +141,30 @@ csep	[ \t]*
 <FDEFINITION>boolean { sm.tempContents().append("tinyint"); }
 <FDEFINITION>false { sm.tempContents().append("0"); }
 <FDEFINITION>true { sm.tempContents().append("1"); }
+<FDEFINITION>{dtime} {
+	std::ostringstream linestr;
+	linestr << line;
+	std::cerr << "WARNING: datetime initializers may be adjusted to the MySQL time zone and appear as differences between versions! (line " + linestr.str() + ", '" << yytext << "')" << std::endl;
+	sm.tempContents().append(yytext);
+}
 <FDEFINITION>{alphaext} { sm.tempContents().append(yytext); }
 <FDEFINITION>\( { sm.tempContents().append(yytext);  BEGIN FDEFINITIONP; }
 <FDEFINITION>{csep}, { sm.commit(); BEGIN TABLEFIELD ; }
 <FDEFINITION>{sep} { if (sm.tempContents().size() > 0) sm.tempContents().append(" "); }
 <FDEFINITION>\) { sm.commit(); sm.tempContents().clear(); BEGIN ENDTABLE; }
 <FDEFINITION>` { }
-<FDEFINITION>[\'\"] {
+<FDEFINITION>[\'] {
 	if (!wasInt)
 	{
 		sm.tempContents().append(yytext);
-		BEGIN FDEFINITIONS;
+		BEGIN FDEFINITIONS1;
+	}
+}
+<FDEFINITION>[\"] {
+	if (!wasInt)
+	{
+		sm.tempContents().append(yytext);
+		BEGIN FDEFINITIONS2;
 	}
 }
 <FDEFINITION>[\r]+ { }
@@ -171,10 +186,27 @@ csep	[ \t]*
 <FDEFINITIONP>` { }
 <FDEFINITIONP>. { if (parantLevel == 0) sm.tempContents().append(yytext); }
 
-<FDEFINITIONS>[\'\"] { sm.tempContents().append(yytext); BEGIN FDEFINITION; }
-<FDEFINITIONS>[\r]+ { }
-<FDEFINITIONS>\n { line++; }
-<FDEFINITIONS>. { sm.tempContents().append(yytext); }
+<FDEFINITIONS1>[\'] { sm.tempContents().append(yytext); BEGIN FDEFINITION; }
+<FDEFINITIONS1>{dtime} {
+	std::ostringstream linestr;
+	linestr << line;
+	std::cerr << "WARNING: datetime initializers may be adjusted to the MySQL time zone and appear as differences between versions! (line " + linestr.str() + ", '" << yytext << "')" << std::endl;
+	sm.tempContents().append(yytext);
+}
+<FDEFINITIONS1>[\r]+ { }
+<FDEFINITIONS1>\n { line++; }
+<FDEFINITIONS1>. { sm.tempContents().append(yytext); }
+
+<FDEFINITIONS2>[\"] { sm.tempContents().append(yytext); BEGIN FDEFINITION; }
+<FDEFINITIONS2>{dtime} {
+	std::ostringstream linestr;
+	linestr << line;
+	std::cerr << "WARNING: datetime initializers may be adjusted to the MySQL time zone and appear as differences between versions! (line " + linestr.str() + ", '" << yytext << "')" << std::endl;
+	sm.tempContents().append(yytext);
+}
+<FDEFINITIONS2>[\r]+ { }
+<FDEFINITIONS2>\n { line++; }
+<FDEFINITIONS2>. { sm.tempContents().append(yytext); }
 
 <ENDTABLE>(?i:create{sep}table) {
 	std::ostringstream linestr;
