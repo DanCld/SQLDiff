@@ -3,6 +3,11 @@ AM_INIT_AUTOMAKE(sqldiff, 0.1, dancld@yahoo.co.uk)
 AM_CONFIG_HEADER(configure.h)
 
 AC_PROG_LEX
+
+if test "x$LEX" == "x"; then
+	AC_MSG_ERROR(No lex/flex installed)
+fi
+
 AM_PROG_CC_C_O
 AC_PROG_CXX
 
