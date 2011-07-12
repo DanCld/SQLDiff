@@ -19,21 +19,38 @@ int main(int argc, char* argv[])
 {
 	try
 	{
-		if (argc < 3)
+		if (argc < 3 || argc > 5)
 		{
-			throw std::runtime_error("too few parameters; usage: " + std::string(argv[0]) + " version1.sql version2.sql [ upgrade.sql ]");
+			throw std::runtime_error("Wrong number of parameters; usage: " + std::string(argv[0]) + " [--skip-modified-timestamps] version1.sql version2.sql [ upgrade.sql ]");
 		}
 
-		std::ifstream inp1(argv[1]), inp2(argv[2]);
+		int pstart = 1;
+		const std::string skip_modified("--skip-modified-timestamps");
+		bool skipModifiedTimestampsFunction = false;
+
+		if (skip_modified.compare(0, 2, argv[1], 2) == 0)
+		{
+			if (skip_modified.compare(argv[1]) == 0)
+			{
+				skipModifiedTimestampsFunction = true;
+				pstart++;
+			}
+			else
+			{
+				throw std::runtime_error("Unknown option: " + std::string(argv[1]));
+			}
+		}
+
+		std::ifstream inp1(argv[pstart]), inp2(argv[pstart + 1]);
 
 		if (!inp1.good())
 		{
-			throw std::runtime_error("cannot open file " + std::string(argv[1]) + " for reading.");
+			throw std::runtime_error("cannot open file " + std::string(argv[pstart]) + " for reading.");
 		}
 
 		if (!inp2.good())
 		{
-			throw std::runtime_error("cannot open file " + std::string(argv[2]) + " for reading.");
+			throw std::runtime_error("cannot open file " + std::string(argv[pstart + 1]) + " for reading.");
 		}
 
 	/* performing 2 local copies of the static variable in the lex parsing module;
@@ -42,8 +59,8 @@ int main(int argc, char* argv[])
 		2 references to the same data structure
 	*/
 
-		const SQLTableListManager sm1(lexParse(inp1));
-		const SQLTableListManager sm2(lexParse(inp2));
+		const SQLTableListManager sm1(lexParse(inp1, skipModifiedTimestampsFunction));
+		const SQLTableListManager sm2(lexParse(inp2, skipModifiedTimestampsFunction));
 
 #ifdef DEBUG
 
@@ -57,13 +74,13 @@ int main(int argc, char* argv[])
 
 		SQLFileParser sqlParser(sm1, sm2);
 
-		if (argc == 4)
+		if (argc == pstart + 3)
 		{
 			std::ofstream out;
-			out.open(argv[3]);
+			out.open(argv[pstart + 2]);
 			if (!out.good())
 			{
-				throw std::runtime_error("cannot open file " + std::string(argv[3]) + " for writing.");
+				throw std::runtime_error("cannot open file " + std::string(argv[pstart + 2]) + " for writing.");
 			}
 			sqlParser.print(out);
 		}

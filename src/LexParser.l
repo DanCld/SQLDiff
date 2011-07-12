@@ -11,6 +11,7 @@
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
+#include <algorithm>
 
 using namespace sqlfileparser;
 
@@ -24,6 +25,8 @@ static unsigned long line;
 static SQLTableListManager sm;
 static int parantLevel;
 static bool wasInt;
+static bool skipTimestamps;
+static bool lastFieldTimestamp;
 
 %}
 
@@ -60,7 +63,7 @@ csep	[ \t]*
 <TABLENAME>(?i:if{sep}not{sep}exists) { }
 <TABLENAME>\`{alpha}\` { sm.addNewTable(yytext); }
 <TABLENAME>{alpha} { sm.addNewTable(yytext); }
-<TABLENAME>\( { wasInt = false; BEGIN TABLEFIELD; }
+<TABLENAME>\( { wasInt = false; lastFieldTimestamp = false; BEGIN TABLEFIELD; }
 <TABLENAME>\) {
 	std::ostringstream linestr;
 	linestr << line;
@@ -85,8 +88,8 @@ csep	[ \t]*
 	std::cerr << "WARNING: check ignored (table: \"" << sm.tempTable() << "\", line " << linestr.str() << ")" << std::endl;
 	BEGIN SKIPLINE;
 }
-<TABLEFIELD>\`{alpha}\` { sm.addNewField(yytext); wasInt = false; BEGIN FDEFINITION; }
-<TABLEFIELD>{alpha} { sm.addNewField(yytext); wasInt = false; BEGIN FDEFINITION; }
+<TABLEFIELD>\`{alpha}\` { sm.addNewField(yytext); wasInt = false; lastFieldTimestamp = false; BEGIN FDEFINITION; }
+<TABLEFIELD>{alpha} { sm.addNewField(yytext); wasInt = false; lastFieldTimestamp = false; BEGIN FDEFINITION; }
 <TABLEFIELD>{sep} { }
 <TABLEFIELD>[\r]+ { }
 <TABLEFIELD>\n { line++; }
@@ -142,16 +145,48 @@ csep	[ \t]*
 <FDEFINITION>false { sm.tempContents().append("0"); }
 <FDEFINITION>true { sm.tempContents().append("1"); }
 <FDEFINITION>{dtime} {
-	std::ostringstream linestr;
-	linestr << line;
-	std::cerr << "WARNING: datetime initializers may be adjusted to the MySQL time zone and appear as differences between versions! (line " + linestr.str() + ", '" << yytext << "')" << std::endl;
+	if (!skipTimestamps)
+	{
+		std::ostringstream linestr;
+		linestr << line;
+		std::cerr << "WARNING: datetime initializers may be adjusted to the MySQL time zone and appear as differences between versions! (line " + linestr.str() + ", '" << yytext << "')" << std::endl;
+	}
 	sm.tempContents().append(yytext);
+	lastFieldTimestamp = true;
 }
-<FDEFINITION>{alphaext} { sm.tempContents().append(yytext); }
+<FDEFINITION>{alphaext} {
+/* convert field definition wording to lowercase, except when the wording is between quotes */
+	std::string tmp_yytext(yytext);
+	std::transform(tmp_yytext.begin(), tmp_yytext.end(), tmp_yytext.begin(), ::tolower);
+	sm.tempContents().append(tmp_yytext);
+}
 <FDEFINITION>\( { sm.tempContents().append(yytext);  BEGIN FDEFINITIONP; }
-<FDEFINITION>{csep}, { sm.commit(); BEGIN TABLEFIELD ; }
+<FDEFINITION>{csep}, {
+	if (skipTimestamps && lastFieldTimestamp)
+	{
+		sm.scrapCommit();
+		lastFieldTimestamp = false;
+	}
+	else
+	{
+		sm.commit();
+	}
+	BEGIN TABLEFIELD;
+}
 <FDEFINITION>{sep} { if (sm.tempContents().size() > 0) sm.tempContents().append(" "); }
-<FDEFINITION>\) { sm.commit(); sm.tempContents().clear(); BEGIN ENDTABLE; }
+<FDEFINITION>\) { 
+	if (skipTimestamps && lastFieldTimestamp)
+	{
+		sm.scrapCommit();
+		lastFieldTimestamp = false;
+	}
+	else
+	{
+		sm.commit();
+	}
+	sm.tempContents().clear();
+	BEGIN ENDTABLE;
+}
 <FDEFINITION>` { }
 <FDEFINITION>[\'] {
 	if (!wasInt)
@@ -188,9 +223,13 @@ csep	[ \t]*
 
 <FDEFINITIONS1>[\'] { sm.tempContents().append(yytext); BEGIN FDEFINITION; }
 <FDEFINITIONS1>{dtime} {
-	std::ostringstream linestr;
-	linestr << line;
-	std::cerr << "WARNING: datetime initializers may be adjusted to the MySQL time zone and appear as differences between versions! (line " + linestr.str() + ", '" << yytext << "')" << std::endl;
+	if (!skipTimestamps)
+	{
+		std::ostringstream linestr;
+		linestr << line;
+		std::cerr << "WARNING: datetime initializers may be adjusted to the MySQL time zone and appear as differences between versions! (line " + linestr.str() + ", '" << yytext << "')" << std::endl;
+	}
+	lastFieldTimestamp = true;
 	sm.tempContents().append(yytext);
 }
 <FDEFINITIONS1>[\r]+ { }
@@ -199,9 +238,13 @@ csep	[ \t]*
 
 <FDEFINITIONS2>[\"] { sm.tempContents().append(yytext); BEGIN FDEFINITION; }
 <FDEFINITIONS2>{dtime} {
-	std::ostringstream linestr;
-	linestr << line;
-	std::cerr << "WARNING: datetime initializers may be adjusted to the MySQL time zone and appear as differences between versions! (line " + linestr.str() + ", '" << yytext << "')" << std::endl;
+	if (!skipTimestamps)
+	{
+		std::ostringstream linestr;
+		linestr << line;
+		std::cerr << "WARNING: datetime initializers may be adjusted to the MySQL time zone and appear as differences between versions! (line " + linestr.str() + ", '" << yytext << "')" << std::endl;
+	}
+	lastFieldTimestamp = true;
 	sm.tempContents().append(yytext);
 }
 <FDEFINITIONS2>[\r]+ { }
@@ -248,12 +291,14 @@ csep	[ \t]*
 namespace sqlfileparser
 {
 
-const SQLTableListManager& lexParse(std::istream& input)
+const SQLTableListManager& lexParse(std::istream& input, bool skipModifiedTimestamps)
 {
 	parantLevel = 0;
 	wasInt = false;
 	line = 1;
 	sm.clear();
+	skipTimestamps = skipModifiedTimestamps;
+	lastFieldTimestamp = false;
 
 	yyFlexLexer lex(&input);
 	while (lex.yylex()) { }

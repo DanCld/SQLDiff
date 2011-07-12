@@ -79,6 +79,8 @@ class SQLTableListManager
 
 		void commit();
 
+		void scrapCommit();
+
 		void addTableType();
 
 		void clear();

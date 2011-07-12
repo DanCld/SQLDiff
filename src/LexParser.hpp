@@ -15,7 +15,7 @@ namespace sqlfileparser
 /* returning a const reference to a static variable declared in the .cpp file
 */
 
-	const SQLTableListManager& lexParse(std::istream& input);
+	const SQLTableListManager& lexParse(std::istream& input, bool skipModifiedTimestamps = false);
 
 } // namespace
 

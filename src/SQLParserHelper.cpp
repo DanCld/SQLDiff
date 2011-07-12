@@ -142,8 +142,6 @@ SQLTableListManager::commit()
 	std::string::size_type first=tempcontents_.find_first_not_of(' '), last=tempcontents_.find_last_not_of(' ');
 	tempcontents_.assign(tempcontents_.substr(first, last - first + 1));
 
-	std::transform(tempcontents_.begin(), tempcontents_.end(), tempcontents_.begin(), ::tolower);
-
 	switch(lastState_)
 	{
 		case FIELD:
@@ -186,6 +184,13 @@ SQLTableListManager::commit()
 			throw std::logic_error("SQLTableListManager:commit() called on DUMMY state!");
 		}
 	}
+	lastState_ = DUMMY;
+	tempconstraint_.clear();
+}
+
+void
+SQLTableListManager::scrapCommit()
+{
 	lastState_ = DUMMY;
 	tempconstraint_.clear();
 }
