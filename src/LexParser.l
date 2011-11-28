@@ -160,7 +160,10 @@ csep	[ \t]*
 	std::transform(tmp_yytext.begin(), tmp_yytext.end(), tmp_yytext.begin(), ::tolower);
 	sm.tempContents().append(tmp_yytext);
 }
-<FDEFINITION>\( { sm.tempContents().append(yytext);  BEGIN FDEFINITIONP; }
+<FDEFINITION>\( {
+	if (sm.tempContents().size() > 0 && sm.tempContents().at(sm.tempContents().size()-1) != ' ') sm.tempContents() += ' ';
+	sm.tempContents().append(yytext);  BEGIN FDEFINITIONP;
+}
 <FDEFINITION>{csep}, {
 	if (skipTimestamps && lastFieldTimestamp)
 	{
