@@ -295,7 +295,7 @@ SQLTableListManager::commitIndex()
 /* Let's check if we are to add the index as we might have already encountered a foreign key on this field
 */
 	TableIndexList::iterator it = temptable_.noindex.find(std::make_pair<std::string, std::string>(tempcontents_, ""));
-	if (it == temptable_.index.end())
+	if (it == temptable_.noindex.end())
 	{
 		temptable_.index.insert(std::make_pair<std::string, std::string>(tempcontents_, ""));
 	}

@@ -74,9 +74,9 @@ csep	[ \t]*
 <TABLENAME>\n { line++; }
 <TABLENAME>. { }
 
-<TABLEFIELD>(?i:constraint) { BEGIN FCONSTRAINT; }
-<TABLEFIELD>(?i:primary{sep}key) { sm.setState(PRIMARY); BEGIN FDEFINITION; }
-<TABLEFIELD>(?i:foreign{sep}key) { sm.setState(FOREIGN); BEGIN FDEFINITION; }
+<TABLEFIELD>(?i:constraint{csep}) { BEGIN FCONSTRAINT; }
+<TABLEFIELD>(?i:primary{sep}key{csep}) { sm.setState(PRIMARY); BEGIN FDEFINITION; }
+<TABLEFIELD>(?i:foreign{sep}key{csep}) { sm.setState(FOREIGN); BEGIN FDEFINITION; }
 <TABLEFIELD>(?i:key{csep}) { sm.setState(INDEX); BEGIN FDEFINITION; }
 <TABLEFIELD>(?i:index{csep}) { sm.setState(INDEX); BEGIN FDEFINITION; }
 <TABLEFIELD>(?i:unique{csep}) { sm.setState(UNIQUE); BEGIN FDEFINITION; }
@@ -177,7 +177,7 @@ csep	[ \t]*
 	BEGIN TABLEFIELD;
 }
 <FDEFINITION>{sep} { if (sm.tempContents().size() > 0) sm.tempContents().append(" "); }
-<FDEFINITION>\) { 
+<FDEFINITION>\) {
 	if (skipTimestamps && lastFieldTimestamp)
 	{
 		sm.scrapCommit();
@@ -190,7 +190,6 @@ csep	[ \t]*
 	sm.tempContents().clear();
 	BEGIN ENDTABLE;
 }
-<FDEFINITION>` { }
 <FDEFINITION>[\'] {
 	if (!wasInt)
 	{
