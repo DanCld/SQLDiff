@@ -4,7 +4,7 @@ AM_CONFIG_HEADER(configure.h)
 
 AC_PROG_LEX
 
-if test "x$LEX" == "x"; then
+if test "x$LEX" != "xflex"; then
 	AC_MSG_ERROR(No lex/flex installed)
 fi
 
