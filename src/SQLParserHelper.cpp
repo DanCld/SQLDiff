@@ -267,6 +267,7 @@ void
 SQLTableListManager::commitForeign()
 {
 /* Let's remove the ( ) and just keep the field name */
+/* This is for the index field, the foreign key is inserted "as it is" */
 
 	std::string::size_type first=tempcontents_.find_first_of('('), last=tempcontents_.find_first_of(')');
 	std::string indexfield(tempcontents_.substr(first + 1, last - first - 1));

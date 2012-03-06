@@ -502,7 +502,7 @@ SQLFileParser::printCreateTableCommand(const SQLTable& ref)
 	for(TableIndexList::const_iterator iit = ref.index.begin(); iit != ref.index.end(); ++iit)
 	{
 		ostr_ << std::endl << "\t"
-			<< "index " << iit->first
+			<< "index " << "(" << iit->first << ")"
 			<< ",";
 	}
 
@@ -510,21 +510,21 @@ SQLFileParser::printCreateTableCommand(const SQLTable& ref)
 	{
 		ostr_ << std::endl << "\t"
 			<< ((uit->second.size() > 0)?("constraint " + uit->second + " "):"")
-			<< "unique " << uit->first
+			<< "unique " << "(" << uit->first << ")"
 			<< ",";
 	}
 
 	for(TableIndexList::const_iterator ftit = ref.fulltext.begin(); ftit != ref.fulltext.end(); ++ftit)
 	{
 		ostr_ << std::endl << "\t"
-			<< "fulltext " << ftit->first
+			<< "fulltext " << "(" << ftit->first << ")"
 			<< ",";
 	}
 
 	for(TableIndexList::const_iterator sit = ref.spatial.begin(); sit != ref.spatial.end(); ++sit)
 	{
 		ostr_ << std::endl << "\t"
-			<< "spatial " << sit->first
+			<< "spatial " << "(" << sit->first << ")"
 			<< ",";
 	}
 
