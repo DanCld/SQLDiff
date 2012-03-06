@@ -277,62 +277,84 @@ SQLTableListManager::commitForeign()
 /* MySQL dumps contain both the index and the foreign key over the same field;
    We just need the foreign key as the index is created by default (and can't be dropped on its own) */
 
-	TableIndexList::iterator it = temptable_.index.find(std::make_pair<std::string, std::string>(indexfield, ""));
-	if (it != temptable_.index.end())
+/* find() does not work in this scenario */
+	TableIndexList::iterator it = temptable_.index.begin(), end_it = temptable_.index.end();
+	
+	for( ; it != end_it ; ++it)
 	{
-		temptable_.index.erase(it);
-		temptable_.noindex.insert(std::make_pair<std::string, std::string>(indexfield, ""));
+		if (it->first == indexfield)
+		{
+			temptable_.index.erase(it);
+			temptable_.noindex.insert(std::make_pair<std::string, std::string>(indexfield, ""));
+			break;
+		}
 	}
 }
 
 void
 SQLTableListManager::commitIndex()
 {
-/* for index name (field) just keep the (field)
+/* for index|key name (field) split name from field
 */
-	std::string::size_type first=tempcontents_.find_first_of('('), last=tempcontents_.find_last_of(')');
-	tempcontents_.assign(tempcontents_.substr(first + 1, last - first - 1));
+	std::string::size_type first = tempcontents_.find_first_of('('),
+	  last = tempcontents_.find_last_of(')'),
+	  space = tempcontents_.find_first_of(' ');
+
+	std::string fieldname(tempcontents_.substr(first + 1, last - first - 1));
+	std::string keyname((space == std::string::npos)?"":tempcontents_.substr(0, space));
 
 /* Let's check if we are to add the index as we might have already encountered a foreign key on this field
 */
-	TableIndexList::iterator it = temptable_.noindex.find(std::make_pair<std::string, std::string>(tempcontents_, ""));
+	TableIndexList::iterator it = temptable_.noindex.find(std::make_pair<std::string, std::string>(fieldname, ""));
 	if (it == temptable_.noindex.end())
 	{
-		temptable_.index.insert(std::make_pair<std::string, std::string>(tempcontents_, ""));
+		temptable_.index.insert(std::make_pair<std::string, std::string>(fieldname, keyname));
 	}
 }
 
 void
 SQLTableListManager::commitUnique()
 {
-/* for index name (field) just keep the (field)
+/* for unique [key] name (field) split name from field
 */
-	std::string::size_type first=tempcontents_.find_first_of('('), last=tempcontents_.find_last_of(')');
-	tempcontents_.assign(tempcontents_.substr(first + 1, last - first - 1));
+	std::string::size_type first = tempcontents_.find_first_of('('),
+	  last = tempcontents_.find_last_of(')'),
+	  space = tempcontents_.find_first_of(' ');
 
-	temptable_.unique.insert(std::make_pair<std::string, std::string>(tempcontents_, tempconstraint_));
+	std::string fieldname(tempcontents_.substr(first + 1, last - first - 1));
+	std::string keyname((space == std::string::npos)?"":tempcontents_.substr(0, space));
+
+	temptable_.unique.insert(std::make_pair<std::string, std::string>(fieldname, keyname));
 }
 
 void
 SQLTableListManager::commitFulltext()
 {
-/* for index name (field) just keep the (field)
+/* for index|key name (field) split name from field
 */
-	std::string::size_type first=tempcontents_.find_first_of('('), last=tempcontents_.find_last_of(')');
-	tempcontents_.assign(tempcontents_.substr(first + 1, last - first - 1));
+	std::string::size_type first = tempcontents_.find_first_of('('),
+	  last = tempcontents_.find_last_of(')'),
+	  space = tempcontents_.find_first_of(' ');
 
-	temptable_.fulltext.insert(std::make_pair<std::string, std::string>(tempcontents_, ""));
+	std::string fieldname(tempcontents_.substr(first + 1, last - first - 1));
+	std::string keyname((space == std::string::npos)?"":tempcontents_.substr(0, space));
+
+	temptable_.fulltext.insert(std::make_pair<std::string, std::string>(fieldname, keyname));
 }
 
 void
 SQLTableListManager::commitSpatial()
 {
-/* for index name (field) just keep the (field)
+/* for index|key name (field) split name from field
 */
-	std::string::size_type first=tempcontents_.find_first_of('('), last=tempcontents_.find_last_of(')');
-	tempcontents_.assign(tempcontents_.substr(first + 1, last - first - 1));
+	std::string::size_type first = tempcontents_.find_first_of('('),
+	  last = tempcontents_.find_last_of(')'),
+	  space = tempcontents_.find_first_of(' ');
 
-	temptable_.spatial.insert(std::make_pair<std::string, std::string>(tempcontents_, ""));
+	std::string fieldname(tempcontents_.substr(first + 1, last - first - 1));
+	std::string keyname((space == std::string::npos)?"":tempcontents_.substr(0, space));
+
+	temptable_.spatial.insert(std::make_pair<std::string, std::string>(fieldname, keyname));
 }
 
 void

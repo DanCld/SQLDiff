@@ -66,21 +66,21 @@ class SQLFileParser {
 
 		void printAlterAddForeignCommand(const SQLTable& ref, const std::pair<std::string, std::string>& desc);
 
-		void printAlterDropIndexCommand(const SQLTable& ref, const std::string& desc);
+		void printAlterDropIndexCommand(const SQLTable& ref, const std::pair<std::string, std::string>& desc);
 
-		void printAlterAddIndexCommand(const SQLTable& ref, const std::string& desc);
+		void printAlterAddIndexCommand(const SQLTable& ref, const std::pair<std::string, std::string>& desc);
 
-		void printAlterDropUniqueCommand(const SQLTable& ref, const std::string& desc);
+		void printAlterDropUniqueCommand(const SQLTable& ref, const std::pair<std::string, std::string>& desc);
 
 		void printAlterAddUniqueCommand(const SQLTable& ref, const std::pair<std::string, std::string>& desc);
 
-		void printAlterDropFullTextCommand(const SQLTable& ref, const std::string& desc);
+		void printAlterDropFullTextCommand(const SQLTable& ref, const std::pair<std::string, std::string>& desc);
 
-		void printAlterAddFullTextCommand(const SQLTable& ref, const std::string& desc);
+		void printAlterAddFullTextCommand(const SQLTable& ref, const std::pair<std::string, std::string>& desc);
 
-		void printAlterDropSpatialCommand(const SQLTable& ref, const std::string& desc);
+		void printAlterDropSpatialCommand(const SQLTable& ref, const std::pair<std::string, std::string>& desc);
 
-		void printAlterAddSpatialCommand(const SQLTable& ref, const std::string& desc);
+		void printAlterAddSpatialCommand(const SQLTable& ref, const std::pair<std::string, std::string>& desc);
 
 
 /* these data structures must be allocated and initialized outside this class;

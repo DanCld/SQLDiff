@@ -290,14 +290,14 @@ SQLFileParser::parseIndex(const SQLTable& ref1, const SQLTable& ref2)
 	{
 		if ( fit2 == ref2.index.end() )
 		{
-			printAlterDropIndexCommand(ref1, fit1->first);
+			printAlterDropIndexCommand(ref1, *fit1);
 			fit1++;
 			continue;
 		}
 
 		if ( fit1 == ref1.index.end() )
 		{
-			printAlterAddIndexCommand(ref2, fit2->first);
+			printAlterAddIndexCommand(ref2, *fit2);
 			fit2++;
 			continue;
 		}
@@ -307,14 +307,14 @@ SQLFileParser::parseIndex(const SQLTable& ref1, const SQLTable& ref2)
 
 		if ( fit1->first < fit2->first )
 		{
-			printAlterDropIndexCommand(ref1, fit1->first);
+			printAlterDropIndexCommand(ref1, *fit1);
 			fit1++;
 			continue;
 		}
 
 		if ( fit1->first > fit2->first )
 		{
-			printAlterAddIndexCommand(ref2, fit2->first);
+			printAlterAddIndexCommand(ref2, *fit2);
 			fit2++;
 			continue;
 		}
@@ -334,7 +334,7 @@ SQLFileParser::parseUnique(const SQLTable& ref1, const SQLTable& ref2)
 	{
 		if ( fit2 == ref2.unique.end() )
 		{
-			printAlterDropUniqueCommand(ref1, fit1->first);
+			printAlterDropUniqueCommand(ref1, *fit1);
 			fit1++;
 			continue;
 		}
@@ -348,7 +348,7 @@ SQLFileParser::parseUnique(const SQLTable& ref1, const SQLTable& ref2)
 
 		if ( fit1->first < fit2->first )
 		{
-			printAlterDropUniqueCommand(ref1, fit1->first);
+			printAlterDropUniqueCommand(ref1, *fit1);
 			fit1++;
 			continue;
 		}
@@ -366,7 +366,7 @@ SQLFileParser::parseUnique(const SQLTable& ref1, const SQLTable& ref2)
 
 		if (fit1->first == fit2->first && fit2->second.size() > 0 && fit1->second != fit2->second)
 		{
-			printAlterDropUniqueCommand(ref1, fit1->first);
+			printAlterDropUniqueCommand(ref1, *fit1);
 			printAlterAddUniqueCommand(ref2, *fit2);
 		}
 
@@ -385,14 +385,14 @@ SQLFileParser::parseFullText(const SQLTable& ref1, const SQLTable& ref2)
 	{
 		if ( fit2 == ref2.fulltext.end() )
 		{
-			printAlterDropFullTextCommand(ref1, fit1->first);
+			printAlterDropFullTextCommand(ref1, *fit1);
 			fit1++;
 			continue;
 		}
 
 		if ( fit1 == ref1.fulltext.end() )
 		{
-			printAlterAddFullTextCommand(ref2, fit2->first);
+			printAlterAddFullTextCommand(ref2, *fit2);
 			fit2++;
 			continue;
 		}
@@ -402,14 +402,14 @@ SQLFileParser::parseFullText(const SQLTable& ref1, const SQLTable& ref2)
 
 		if ( fit1->first < fit2->first )
 		{
-			printAlterDropFullTextCommand(ref1, fit1->first);
+			printAlterDropFullTextCommand(ref1, *fit1);
 			fit1++;
 			continue;
 		}
 
 		if ( fit1->first > fit2->first )
 		{
-			printAlterAddFullTextCommand(ref2, fit2->first);
+			printAlterAddFullTextCommand(ref2, *fit2);
 			fit2++;
 			continue;
 		}
@@ -429,14 +429,14 @@ SQLFileParser::parseSpatial(const SQLTable& ref1, const SQLTable& ref2)
 	{
 		if ( fit2 == ref2.spatial.end() )
 		{
-			printAlterDropSpatialCommand(ref1, fit1->first);
+			printAlterDropSpatialCommand(ref1, *fit1);
 			fit1++;
 			continue;
 		}
 
 		if ( fit1 == ref1.spatial.end() )
 		{
-			printAlterAddSpatialCommand(ref2, fit2->first);
+			printAlterAddSpatialCommand(ref2, *fit2);
 			fit2++;
 			continue;
 		}
@@ -446,14 +446,14 @@ SQLFileParser::parseSpatial(const SQLTable& ref1, const SQLTable& ref2)
 
 		if ( fit1->first < fit2->first )
 		{
-			printAlterDropSpatialCommand(ref1, fit1->first);
+			printAlterDropSpatialCommand(ref1, *fit1);
 			fit1++;
 			continue;
 		}
 
 		if ( fit1->first > fit2->first )
 		{
-			printAlterAddSpatialCommand(ref2, fit2->first);
+			printAlterAddSpatialCommand(ref2, *fit2);
 			fit2++;
 			continue;
 		}
@@ -502,29 +502,28 @@ SQLFileParser::printCreateTableCommand(const SQLTable& ref)
 	for(TableIndexList::const_iterator iit = ref.index.begin(); iit != ref.index.end(); ++iit)
 	{
 		ostr_ << std::endl << "\t"
-			<< "index " << "(" << iit->first << ")"
+			<< "index " << ((iit->second.size() > 0)?iit->second + " ":"") << "(" << iit->first << ")"
 			<< ",";
 	}
 
 	for(TableIndexList::const_iterator uit = ref.unique.begin(); uit != ref.unique.end(); ++uit)
 	{
 		ostr_ << std::endl << "\t"
-			<< ((uit->second.size() > 0)?("constraint " + uit->second + " "):"")
-			<< "unique " << "(" << uit->first << ")"
+			<< "unique " << ((uit->second.size() > 0)?uit->second + " ":"") << "(" << uit->first << ")"
 			<< ",";
 	}
 
 	for(TableIndexList::const_iterator ftit = ref.fulltext.begin(); ftit != ref.fulltext.end(); ++ftit)
 	{
 		ostr_ << std::endl << "\t"
-			<< "fulltext " << "(" << ftit->first << ")"
+			<< "fulltext " << ((ftit->second.size() > 0)?ftit->second + " ":"") << "(" << ftit->first << ")"
 			<< ",";
 	}
 
 	for(TableIndexList::const_iterator sit = ref.spatial.begin(); sit != ref.spatial.end(); ++sit)
 	{
 		ostr_ << std::endl << "\t"
-			<< "spatial " << "(" << sit->first << ")"
+			<< "spatial " << ((sit->second.size() > 0)?sit->second + " ":"") << "(" << sit->first << ")"
 			<< ",";
 	}
 
@@ -663,36 +662,36 @@ SQLFileParser::printAlterAddForeignCommand(const SQLTable& ref, const std::pair<
 }
 
 void
-SQLFileParser::printAlterDropIndexCommand(const SQLTable& ref, const std::string& desc)
+SQLFileParser::printAlterDropIndexCommand(const SQLTable& ref, const std::pair<std::string, std::string>& desc)
 {
 	std::ostringstream mstr_;
 
 	mstr_ << "alter table " << ref.name
-		<< " drop index " << desc << ";"
+		<< " drop index " << desc.second << ";"
 		<< std::endl << std::endl;
 
 	keyCommands_.at(ref.name).append(mstr_.str());
 }
 
 void
-SQLFileParser::printAlterAddIndexCommand(const SQLTable& ref, const std::string& desc)
+SQLFileParser::printAlterAddIndexCommand(const SQLTable& ref, const std::pair<std::string, std::string>& desc)
 {
 	std::ostringstream mstr_;
 
 	mstr_ << "alter table " << ref.name
-		<< " add index (" << desc << ");"
+		<< " add index " << ((desc.second.size() > 0)?desc.second + " ":"") << "(" << desc.first << ");"
 		<< std::endl << std::endl;
 
 	keyCommands_.at(ref.name).append(mstr_.str());
 }
 
 void
-SQLFileParser::printAlterDropUniqueCommand(const SQLTable& ref, const std::string& desc)
+SQLFileParser::printAlterDropUniqueCommand(const SQLTable& ref, const std::pair<std::string, std::string>& desc)
 {
 	std::ostringstream mstr_;
 
 	mstr_ << "alter table " << ref.name
-		<< " drop key " << desc << ";"
+		<< " drop key " << desc.second << ";"
 		<< std::endl << std::endl;
 
 	keyCommands_.at(ref.name).append(mstr_.str());
@@ -704,57 +703,55 @@ SQLFileParser::printAlterAddUniqueCommand(const SQLTable& ref, const std::pair<s
 	std::ostringstream mstr_;
 
 	mstr_ << "alter table " << ref.name
-		<< " add"
-		<< ((desc.second.size() > 0)?" constraint " + desc.second:"")
-		<< " unique (" << desc.first << ");"
+		<< " add unique " << ((desc.second.size() > 0)?desc.second + " ":"") << "(" << desc.first << ");"
 		<< std::endl << std::endl;
 
 	keyCommands_.at(ref.name).append(mstr_.str());
 }
 
 void
-SQLFileParser::printAlterDropFullTextCommand(const SQLTable& ref, const std::string& desc)
+SQLFileParser::printAlterDropFullTextCommand(const SQLTable& ref, const std::pair<std::string, std::string>& desc)
 {
 	std::ostringstream mstr_;
 
 	mstr_ << "alter table " << ref.name
-		<< " drop key " << desc << ";"
+		<< " drop key " << desc.second << ";"
 		<< std::endl << std::endl;
 
 	keyCommands_.at(ref.name).append(mstr_.str());
 }
 
 void
-SQLFileParser::printAlterAddFullTextCommand(const SQLTable& ref, const std::string& desc)
+SQLFileParser::printAlterAddFullTextCommand(const SQLTable& ref, const std::pair<std::string, std::string>& desc)
 {
 	std::ostringstream mstr_;
 
 	mstr_ << "alter table " << ref.name
-		<< " add fulltext (" << desc << ");"
+		<< " add fulltext " << ((desc.second.size() > 0)?desc.second + " ":"") << "(" << desc.first << ");"
 		<< std::endl << std::endl;
 
 	keyCommands_.at(ref.name).append(mstr_.str());
 }
 
 void
-SQLFileParser::printAlterDropSpatialCommand(const SQLTable& ref, const std::string& desc)
+SQLFileParser::printAlterDropSpatialCommand(const SQLTable& ref, const std::pair<std::string, std::string>& desc)
 {
 	std::ostringstream mstr_;
 
 	mstr_ << "alter table " << ref.name
-		<< " drop key " << desc << ";"
+		<< " drop key " << desc.second << ";"
 		<< std::endl << std::endl;
 
 	keyCommands_.at(ref.name).append(mstr_.str());
 }
 
 void
-SQLFileParser::printAlterAddSpatialCommand(const SQLTable& ref, const std::string& desc)
+SQLFileParser::printAlterAddSpatialCommand(const SQLTable& ref, const std::pair<std::string, std::string>& desc)
 {
 	std::ostringstream mstr_;
 
 	mstr_ << "alter table " << ref.name
-		<< " add spatial (" << desc << ");"
+		<< " add spatial " << ((desc.second.size() > 0)?desc.second + " ":"") << "(" << desc.first << ");"
 		<< std::endl << std::endl;
 
 	keyCommands_.at(ref.name).append(mstr_.str());
