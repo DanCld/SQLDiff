@@ -134,7 +134,7 @@ csep	[ \t]*
 <FDEFINITION>(?i:default{sep}\'\'{csep}) { }
 <FDEFINITION>(?i:primary{sep}key{csep}) { sm.addPrimaryKeyFromField(); }
 <FDEFINITION>(?i:not{sep}null{csep}) { sm.tempModifier().assign("not null"); }
-<FDEFINITION>(?i:null{csep}) { }
+<FDEFINITION>(?i:null{csep}) { if (sm.getState() != FIELD) sm.tempContents().append("null"); }
 <FDEFINITION>int{csep}\( { sm.tempContents().append("int"); wasInt = true; BEGIN SKIPPAR; }
 <FDEFINITION>smallint{csep}\( { sm.tempContents().append("smallint"); wasInt = true; BEGIN SKIPPAR; }
 <FDEFINITION>bigint{csep}\( { sm.tempContents().append("bigint"); wasInt = true; BEGIN SKIPPAR; }

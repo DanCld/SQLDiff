@@ -74,6 +74,8 @@ class SQLTableListManager
 		void addNewField(const std::string& tfield);
 
 		void setState(MgrState state);
+		
+		const MgrState getState() const { return lastState_; }
 
 		void addPrimaryKeyFromField();
 
