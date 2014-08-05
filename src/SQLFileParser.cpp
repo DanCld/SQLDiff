@@ -98,29 +98,25 @@ SQLFileParser::parseTables()
 	{
 		if ( v2_it == psm2_->tlist().end() )
 		{
-			printDropTableCommand(*v1_it);
-			v1_it++;
+			printDropTableCommand(*(v1_it++));
 			continue;
 		}
 
 		if ( v1_it == psm1_->tlist().end() )
 		{
-			printCreateTableCommand(*v2_it);
-			v2_it++;
+			printCreateTableCommand(*(v2_it++));
 			continue;
 		}
 
 		if ( v1_it->name < v2_it->name )
 		{
-			printDropTableCommand(*v1_it);
-			v1_it++;
+			printDropTableCommand(*(v1_it++));
 			continue;
 		}
 
 		if ( v1_it->name > v2_it->name )
 		{
-			printCreateTableCommand(*v2_it);
-			v2_it++;
+			printCreateTableCommand(*(v2_it++));
 			continue;
 		}
 
@@ -136,8 +132,8 @@ SQLFileParser::parseTables()
 		parseFullText(*(v1_it), *(v2_it));
 		parseSpatial(*(v1_it), *(v2_it));
 
-		v1_it++;
-		v2_it++;
+		++v1_it;
+		++v2_it;
 	}
 }
 
@@ -154,29 +150,25 @@ SQLFileParser::parseFields(const SQLTable& ref1, const SQLTable& ref2)
 	{
 		if ( fit2 == ref2.indexedfields.end() )
 		{
-			printAlterDropCommand(ref1, fit1->first);
-			fit1++;
+			printAlterDropCommand(ref1, (fit1++)->first);
 			continue;
 		}
 
 		if ( fit1 == ref1.indexedfields.end() )
 		{
-			printAlterAddCommand(ref2, *fit2);
-			fit2++;
+			printAlterAddCommand(ref2, *(fit2++));
 			continue;
 		}
 
 		if ( fit1->first < fit2->first )
 		{
-			printAlterDropCommand(ref1, fit1->first);
-			fit1++;
+			printAlterDropCommand(ref1, (fit1++)->first);
 			continue;
 		}
 
 		if ( fit1->first > fit2->first )
 		{
-			printAlterAddCommand(ref2, *fit2);
-			fit2++;
+			printAlterAddCommand(ref2, *(fit2++));
 			continue;
 		}
 
@@ -185,8 +177,8 @@ SQLFileParser::parseFields(const SQLTable& ref1, const SQLTable& ref2)
 			printAlterModifyCommand(ref2, *fit2);
 		}
 
-		fit1++;
-		fit2++;
+		++fit1;
+		++fit2;
 	}
 }
 
@@ -201,14 +193,13 @@ SQLFileParser::parsePrimary(const SQLTable& ref1, const SQLTable& ref2)
 		if ( fit2 == ref2.primary.end() )
 		{
 			printAlterDropPrimaryCommand(ref1);
-			fit1++;
+			++fit1;
 			continue;
 		}
 
 		if ( fit1 == ref1.primary.end() )
 		{
-			printAlterAddPrimaryCommand(ref2, *fit2);
-			fit2++;
+			printAlterAddPrimaryCommand(ref2, *(fit2++));
 			continue;
 		}
 
@@ -224,8 +215,8 @@ SQLFileParser::parsePrimary(const SQLTable& ref1, const SQLTable& ref2)
 			printAlterAddPrimaryCommand(ref2, *fit2);
 		}
 
-		fit1++;
-		fit2++;
+		++fit1;
+		++fit2;
 	}
 }
 
@@ -239,29 +230,25 @@ SQLFileParser::parseForeign(const SQLTable& ref1, const SQLTable& ref2)
 	{
 		if ( fit2 == ref2.foreign.end() )
 		{
-			printAlterDropForeignCommand(ref1, *fit1);
-			fit1++;
+			printAlterDropForeignCommand(ref1, *(fit1++));
 			continue;
 		}
 
 		if ( fit1 == ref1.foreign.end() )
 		{
-			printAlterAddForeignCommand(ref2, *fit2);
-			fit2++;
+			printAlterAddForeignCommand(ref2, *(fit2++));
 			continue;
 		}
 
 		if ( fit1->first < fit2->first )
 		{
-			printAlterDropForeignCommand(ref1, *fit1);
-			fit1++;
+			printAlterDropForeignCommand(ref1, *(fit1++));
 			continue;
 		}
 
 		if ( fit1->first > fit2->first )
 		{
-			printAlterAddForeignCommand(ref2, *fit2);
-			fit2++;
+			printAlterAddForeignCommand(ref2, *(fit2++));
 			continue;
 		}
 
@@ -275,8 +262,8 @@ SQLFileParser::parseForeign(const SQLTable& ref1, const SQLTable& ref2)
 			printAlterAddForeignCommand(ref2, *fit2);
 		}
 
-		fit1++;
-		fit2++;
+		++fit1;
+		++fit2;
 	}
 }
 
@@ -290,15 +277,13 @@ SQLFileParser::parseIndex(const SQLTable& ref1, const SQLTable& ref2)
 	{
 		if ( fit2 == ref2.index.end() )
 		{
-			printAlterDropIndexCommand(ref1, *fit1);
-			fit1++;
+			printAlterDropIndexCommand(ref1, *(fit1++));
 			continue;
 		}
 
 		if ( fit1 == ref1.index.end() )
 		{
-			printAlterAddIndexCommand(ref2, *fit2);
-			fit2++;
+			printAlterAddIndexCommand(ref2, *(fit2++));
 			continue;
 		}
 
@@ -307,20 +292,18 @@ SQLFileParser::parseIndex(const SQLTable& ref1, const SQLTable& ref2)
 
 		if ( fit1->first < fit2->first )
 		{
-			printAlterDropIndexCommand(ref1, *fit1);
-			fit1++;
+			printAlterDropIndexCommand(ref1, *(fit1++));
 			continue;
 		}
 
 		if ( fit1->first > fit2->first )
 		{
-			printAlterAddIndexCommand(ref2, *fit2);
-			fit2++;
+			printAlterAddIndexCommand(ref2, *(fit2++));
 			continue;
 		}
 
-		fit1++;
-		fit2++;
+		++fit1;
+		++fit2;
 	}
 }
 
@@ -334,29 +317,25 @@ SQLFileParser::parseUnique(const SQLTable& ref1, const SQLTable& ref2)
 	{
 		if ( fit2 == ref2.unique.end() )
 		{
-			printAlterDropUniqueCommand(ref1, *fit1);
-			fit1++;
+			printAlterDropUniqueCommand(ref1, *(fit1++));
 			continue;
 		}
 
 		if ( fit1 == ref1.unique.end() )
 		{
-			printAlterAddUniqueCommand(ref2, *fit2);
-			fit2++;
+			printAlterAddUniqueCommand(ref2, *(fit2++));
 			continue;
 		}
 
 		if ( fit1->first < fit2->first )
 		{
-			printAlterDropUniqueCommand(ref1, *fit1);
-			fit1++;
+			printAlterDropUniqueCommand(ref1, *(fit1++));
 			continue;
 		}
 
 		if ( fit1->first > fit2->first )
 		{
-			printAlterAddUniqueCommand(ref2, *fit2);
-			fit2++;
+			printAlterAddUniqueCommand(ref2, *(fit2++));
 			continue;
 		}
 
@@ -370,8 +349,8 @@ SQLFileParser::parseUnique(const SQLTable& ref1, const SQLTable& ref2)
 			printAlterAddUniqueCommand(ref2, *fit2);
 		}
 
-		fit1++;
-		fit2++;
+		++fit1;
+		++fit2;
 	}
 }
 
@@ -385,15 +364,13 @@ SQLFileParser::parseFullText(const SQLTable& ref1, const SQLTable& ref2)
 	{
 		if ( fit2 == ref2.fulltext.end() )
 		{
-			printAlterDropFullTextCommand(ref1, *fit1);
-			fit1++;
+			printAlterDropFullTextCommand(ref1, *(fit1++));
 			continue;
 		}
 
 		if ( fit1 == ref1.fulltext.end() )
 		{
-			printAlterAddFullTextCommand(ref2, *fit2);
-			fit2++;
+			printAlterAddFullTextCommand(ref2, *(fit2++));
 			continue;
 		}
 
@@ -402,20 +379,18 @@ SQLFileParser::parseFullText(const SQLTable& ref1, const SQLTable& ref2)
 
 		if ( fit1->first < fit2->first )
 		{
-			printAlterDropFullTextCommand(ref1, *fit1);
-			fit1++;
+			printAlterDropFullTextCommand(ref1, *(fit1++));
 			continue;
 		}
 
 		if ( fit1->first > fit2->first )
 		{
-			printAlterAddFullTextCommand(ref2, *fit2);
-			fit2++;
+			printAlterAddFullTextCommand(ref2, *(fit2++));
 			continue;
 		}
 
-		fit1++;
-		fit2++;
+		++fit1;
+		++fit2;
 	}
 }
 
@@ -429,15 +404,13 @@ SQLFileParser::parseSpatial(const SQLTable& ref1, const SQLTable& ref2)
 	{
 		if ( fit2 == ref2.spatial.end() )
 		{
-			printAlterDropSpatialCommand(ref1, *fit1);
-			fit1++;
+			printAlterDropSpatialCommand(ref1, *(fit1++));
 			continue;
 		}
 
 		if ( fit1 == ref1.spatial.end() )
 		{
-			printAlterAddSpatialCommand(ref2, *fit2);
-			fit2++;
+			printAlterAddSpatialCommand(ref2, *(fit2++));
 			continue;
 		}
 
@@ -446,20 +419,18 @@ SQLFileParser::parseSpatial(const SQLTable& ref1, const SQLTable& ref2)
 
 		if ( fit1->first < fit2->first )
 		{
-			printAlterDropSpatialCommand(ref1, *fit1);
-			fit1++;
+			printAlterDropSpatialCommand(ref1, *(fit1++));
 			continue;
 		}
 
 		if ( fit1->first > fit2->first )
 		{
-			printAlterAddSpatialCommand(ref2, *fit2);
-			fit2++;
+			printAlterAddSpatialCommand(ref2, *(fit2++));
 			continue;
 		}
 
-		fit1++;
-		fit2++;
+		++fit1;
+		++fit2;
 	}
 }
 
