@@ -3,7 +3,7 @@
 * License: GPL
 */
 
-/* this file will be expanded into a .cpp one by the flex program
+/* this file will be expanded into a .cpp by flex
 */
 
 #include "SQLParserHelper.hpp"
@@ -13,20 +13,21 @@
 #include <stdexcept>
 #include <algorithm>
 
+
 using namespace sqlfileparser;
 
-/* the static (pre-allocated on heap) variable should always be declared in the .cpp;
-   we must ensure that is allocated once and initialized (cleared) before every use;
-   we must return it outside this module by the means of a reference to prevent extra
-   copying
-*/
+namespace
+{
+
+static SQLTableListManagerPtr psm;
 
 static unsigned long line;
-static SQLTableListManager sm;
 static int parantLevel;
 static bool wasInt;
 static bool skipTimestamps;
 static bool lastFieldTimestamp;
+
+} // anonymous namespace
 
 %}
 
@@ -61,8 +62,8 @@ csep	[ \t]*
 . { }
 
 <TABLENAME>(?i:if{sep}not{sep}exists) { }
-<TABLENAME>\`{alpha}\` { sm.addNewTable(yytext); }
-<TABLENAME>{alpha} { sm.addNewTable(yytext); }
+<TABLENAME>\`{alpha}\` { psm->addNewTable(yytext); }
+<TABLENAME>{alpha} { psm->addNewTable(yytext); }
 <TABLENAME>\( { wasInt = false; lastFieldTimestamp = false; BEGIN TABLEFIELD; }
 <TABLENAME>\) {
 	std::ostringstream linestr;
@@ -75,21 +76,21 @@ csep	[ \t]*
 <TABLENAME>. { }
 
 <TABLEFIELD>(?i:constraint{csep}) { BEGIN FCONSTRAINT; }
-<TABLEFIELD>(?i:primary{sep}key{csep}) { sm.setState(PRIMARY); BEGIN FDEFINITION; }
-<TABLEFIELD>(?i:foreign{sep}key{csep}) { sm.setState(FOREIGN); BEGIN FDEFINITION; }
-<TABLEFIELD>(?i:key{csep}) { sm.setState(INDEX); BEGIN FDEFINITION; }
-<TABLEFIELD>(?i:index{csep}) { sm.setState(INDEX); BEGIN FDEFINITION; }
-<TABLEFIELD>(?i:unique{csep}) { sm.setState(UNIQUE); BEGIN FDEFINITION; }
-<TABLEFIELD>(?i:fulltext{csep}) { sm.setState(FULLTEXT); BEGIN FDEFINITION; }
-<TABLEFIELD>(?i:spatial{csep}) { sm.setState(SPATIAL); BEGIN FDEFINITION; }
+<TABLEFIELD>(?i:primary{sep}key{csep}) { psm->setState(PRIMARY); BEGIN FDEFINITION; }
+<TABLEFIELD>(?i:foreign{sep}key{csep}) { psm->setState(FOREIGN); BEGIN FDEFINITION; }
+<TABLEFIELD>(?i:key{csep}) { psm->setState(INDEX); BEGIN FDEFINITION; }
+<TABLEFIELD>(?i:index{csep}) { psm->setState(INDEX); BEGIN FDEFINITION; }
+<TABLEFIELD>(?i:unique{csep}) { psm->setState(UNIQUE); BEGIN FDEFINITION; }
+<TABLEFIELD>(?i:fulltext{csep}) { psm->setState(FULLTEXT); BEGIN FDEFINITION; }
+<TABLEFIELD>(?i:spatial{csep}) { psm->setState(SPATIAL); BEGIN FDEFINITION; }
 <TABLEFIELD>(?i:check{csep}) {
 	std::ostringstream linestr;
 	linestr << line;
-	std::cerr << "WARNING: check ignored (table: \"" << sm.tempTable() << "\", line " << linestr.str() << ")" << std::endl;
+	std::cerr << "WARNING: check ignored (table: \"" << psm->tempTable() << "\", line " << linestr.str() << ")" << std::endl;
 	BEGIN SKIPLINE;
 }
-<TABLEFIELD>\`{alpha}\` { sm.addNewField(yytext); wasInt = false; lastFieldTimestamp = false; BEGIN FDEFINITION; }
-<TABLEFIELD>{alpha} { sm.addNewField(yytext); wasInt = false; lastFieldTimestamp = false; BEGIN FDEFINITION; }
+<TABLEFIELD>\`{alpha}\` { psm->addNewField(yytext); wasInt = false; lastFieldTimestamp = false; BEGIN FDEFINITION; }
+<TABLEFIELD>{alpha} { psm->addNewField(yytext); wasInt = false; lastFieldTimestamp = false; BEGIN FDEFINITION; }
 <TABLEFIELD>{sep} { }
 <TABLEFIELD>[\r]+ { }
 <TABLEFIELD>\n { line++; }
@@ -99,26 +100,26 @@ csep	[ \t]*
 	throw std::runtime_error("Unexpected character \"" + std::string(yytext) + "\" on line " + linestr.str() + " in context TABLEFIELD");
 }
 
-<FCONSTRAINT>(?i:primary{sep}key) { sm.setState(PRIMARY); BEGIN FDEFINITION; }
-<FCONSTRAINT>(?i:foreign{sep}key) { sm.setState(FOREIGN); BEGIN FDEFINITION; }
-<FCONSTRAINT>(?i:unique{csep}) { sm.setState(UNIQUE); BEGIN FDEFINITION; }
+<FCONSTRAINT>(?i:primary{sep}key) { psm->setState(PRIMARY); BEGIN FDEFINITION; }
+<FCONSTRAINT>(?i:foreign{sep}key) { psm->setState(FOREIGN); BEGIN FDEFINITION; }
+<FCONSTRAINT>(?i:unique{csep}) { psm->setState(UNIQUE); BEGIN FDEFINITION; }
 <FCONSTRAINT>\`{alpha}\` { 
-	if (sm.tempConstraint().size() > 0)
+	if (psm->tempConstraint().size() > 0)
 	{
 		std::ostringstream linestr;
 		linestr << line; 
 		throw std::runtime_error("Unexpected token \"" + std::string(yytext) + "\" on line " + linestr.str() + " in context FCONSTRAINT");
 	}
-	sm.tempConstraint().assign(yytext);
+	psm->tempConstraint().assign(yytext);
 }
 <FCONSTRAINT>{alpha} { 
-	if (sm.tempConstraint().size() > 0)
+	if (psm->tempConstraint().size() > 0)
 	{
 		std::ostringstream linestr;
 		linestr << line; 
 		throw std::runtime_error("Unexpected token \"" + std::string(yytext) + "\" on line " + linestr.str() + " in context FCONSTRAINT");
 	}
-	sm.tempConstraint().assign(yytext);
+	psm->tempConstraint().assign(yytext);
 }
 <FCONSTRAINT>{sep} { }
 <FCONSTRAINT>[\r]+ { }
@@ -132,18 +133,18 @@ csep	[ \t]*
 <FDEFINITION>(?i:key{csep}) { }
 <FDEFINITION>(?i:default{sep}null{csep}) { }
 <FDEFINITION>(?i:default{sep}\'\'{csep}) { }
-<FDEFINITION>(?i:primary{sep}key{csep}) { sm.addPrimaryKeyFromField(); }
-<FDEFINITION>(?i:not{sep}null{csep}) { sm.tempModifier().assign("not null"); }
-<FDEFINITION>(?i:null{csep}) { if (sm.getState() != FIELD) sm.tempContents().append("null"); }
-<FDEFINITION>int{csep}\( { sm.tempContents().append("int"); wasInt = true; BEGIN SKIPPAR; }
-<FDEFINITION>smallint{csep}\( { sm.tempContents().append("smallint"); wasInt = true; BEGIN SKIPPAR; }
-<FDEFINITION>bigint{csep}\( { sm.tempContents().append("bigint"); wasInt = true; BEGIN SKIPPAR; }
-<FDEFINITION>tinyint{csep}\( { sm.tempContents().append("tinyint"); wasInt = true; BEGIN SKIPPAR; }
-<FDEFINITION>text{csep}\( { sm.tempContents().append("text"); BEGIN SKIPPAR; }
-<FDEFINITION>double { sm.tempContents().append(yytext); wasInt = true; }
-<FDEFINITION>boolean { sm.tempContents().append("tinyint"); }
-<FDEFINITION>false { sm.tempContents().append("0"); }
-<FDEFINITION>true { sm.tempContents().append("1"); }
+<FDEFINITION>(?i:primary{sep}key{csep}) { psm->addPrimaryKeyFromField(); }
+<FDEFINITION>(?i:not{sep}null{csep}) { psm->tempModifier().assign("not null"); }
+<FDEFINITION>(?i:null{csep}) { if (psm->getState() != FIELD) psm->tempContents().append("null"); }
+<FDEFINITION>int{csep}\( { psm->tempContents().append("int"); wasInt = true; BEGIN SKIPPAR; }
+<FDEFINITION>smallint{csep}\( { psm->tempContents().append("smallint"); wasInt = true; BEGIN SKIPPAR; }
+<FDEFINITION>bigint{csep}\( { psm->tempContents().append("bigint"); wasInt = true; BEGIN SKIPPAR; }
+<FDEFINITION>tinyint{csep}\( { psm->tempContents().append("tinyint"); wasInt = true; BEGIN SKIPPAR; }
+<FDEFINITION>text{csep}\( { psm->tempContents().append("text"); BEGIN SKIPPAR; }
+<FDEFINITION>double { psm->tempContents().append(yytext); wasInt = true; }
+<FDEFINITION>boolean { psm->tempContents().append("tinyint"); }
+<FDEFINITION>false { psm->tempContents().append("0"); }
+<FDEFINITION>true { psm->tempContents().append("1"); }
 <FDEFINITION>{dtime} {
 	if (!skipTimestamps)
 	{
@@ -151,56 +152,56 @@ csep	[ \t]*
 		linestr << line;
 		std::cerr << "WARNING: datetime initializers may be adjusted to the MySQL time zone and appear as differences between versions! (line " + linestr.str() + ", '" << yytext << "')" << std::endl;
 	}
-	sm.tempContents().append(yytext);
+	psm->tempContents().append(yytext);
 	lastFieldTimestamp = true;
 }
 <FDEFINITION>{alphaext} {
 /* convert field definition wording to lowercase, except when the wording is between quotes */
 	std::string tmp_yytext(yytext);
 	std::transform(tmp_yytext.begin(), tmp_yytext.end(), tmp_yytext.begin(), ::tolower);
-	sm.tempContents().append(tmp_yytext);
+	psm->tempContents().append(tmp_yytext);
 }
 <FDEFINITION>\( {
-	if (sm.tempContents().size() > 0 && sm.tempContents().at(sm.tempContents().size()-1) != ' ') sm.tempContents() += ' ';
-	sm.tempContents().append(yytext);  BEGIN FDEFINITIONP;
+	if (psm->tempContents().size() > 0 && psm->tempContents().at(psm->tempContents().size()-1) != ' ') psm->tempContents() += ' ';
+	psm->tempContents().append(yytext);  BEGIN FDEFINITIONP;
 }
 <FDEFINITION>{csep}, {
 	if (skipTimestamps && lastFieldTimestamp)
 	{
-		sm.scrapCommit();
+		psm->scrapCommit();
 		lastFieldTimestamp = false;
 	}
 	else
 	{
-		sm.commit();
+		psm->commit();
 	}
 	BEGIN TABLEFIELD;
 }
-<FDEFINITION>{sep} { if (sm.tempContents().size() > 0) sm.tempContents().append(" "); }
+<FDEFINITION>{sep} { if (psm->tempContents().size() > 0) psm->tempContents().append(" "); }
 <FDEFINITION>\) {
 	if (skipTimestamps && lastFieldTimestamp)
 	{
-		sm.scrapCommit();
+		psm->scrapCommit();
 		lastFieldTimestamp = false;
 	}
 	else
 	{
-		sm.commit();
+		psm->commit();
 	}
-	sm.tempContents().clear();
+	psm->tempContents().clear();
 	BEGIN ENDTABLE;
 }
 <FDEFINITION>[\'] {
 	if (!wasInt)
 	{
-		sm.tempContents().append(yytext);
+		psm->tempContents().append(yytext);
 		BEGIN FDEFINITIONS1;
 	}
 }
 <FDEFINITION>[\"] {
 	if (!wasInt)
 	{
-		sm.tempContents().append(yytext);
+		psm->tempContents().append(yytext);
 		BEGIN FDEFINITIONS2;
 	}
 }
@@ -212,18 +213,18 @@ csep	[ \t]*
 <FDEFINITIONP>\) {
 	if (parantLevel == 0)
 	{
-		sm.tempContents().append(yytext);
+		psm->tempContents().append(yytext);
 		BEGIN FDEFINITION;
 	}
 	else parantLevel--;
 }
-<FDEFINITIONP>,{csep} { if (parantLevel == 0) sm.tempContents().append(","); }
+<FDEFINITIONP>,{csep} { if (parantLevel == 0) psm->tempContents().append(","); }
 <FDEFINITIONP>[\r]+ { }
 <FDEFINITIONP>\n { line++; }
 <FDEFINITIONP>` { }
-<FDEFINITIONP>. { if (parantLevel == 0) sm.tempContents().append(yytext); }
+<FDEFINITIONP>. { if (parantLevel == 0) psm->tempContents().append(yytext); }
 
-<FDEFINITIONS1>[\'] { sm.tempContents().append(yytext); BEGIN FDEFINITION; }
+<FDEFINITIONS1>[\'] { psm->tempContents().append(yytext); BEGIN FDEFINITION; }
 <FDEFINITIONS1>{dtime} {
 	if (!skipTimestamps)
 	{
@@ -232,13 +233,13 @@ csep	[ \t]*
 		std::cerr << "WARNING: datetime initializers may be adjusted to the MySQL time zone and appear as differences between versions! (line " + linestr.str() + ", '" << yytext << "')" << std::endl;
 	}
 	lastFieldTimestamp = true;
-	sm.tempContents().append(yytext);
+	psm->tempContents().append(yytext);
 }
 <FDEFINITIONS1>[\r]+ { }
 <FDEFINITIONS1>\n { line++; }
-<FDEFINITIONS1>. { sm.tempContents().append(yytext); }
+<FDEFINITIONS1>. { psm->tempContents().append(yytext); }
 
-<FDEFINITIONS2>[\"] { sm.tempContents().append(yytext); BEGIN FDEFINITION; }
+<FDEFINITIONS2>[\"] { psm->tempContents().append(yytext); BEGIN FDEFINITION; }
 <FDEFINITIONS2>{dtime} {
 	if (!skipTimestamps)
 	{
@@ -247,20 +248,20 @@ csep	[ \t]*
 		std::cerr << "WARNING: datetime initializers may be adjusted to the MySQL time zone and appear as differences between versions! (line " + linestr.str() + ", '" << yytext << "')" << std::endl;
 	}
 	lastFieldTimestamp = true;
-	sm.tempContents().append(yytext);
+	psm->tempContents().append(yytext);
 }
 <FDEFINITIONS2>[\r]+ { }
 <FDEFINITIONS2>\n { line++; }
-<FDEFINITIONS2>. { sm.tempContents().append(yytext); }
+<FDEFINITIONS2>. { psm->tempContents().append(yytext); }
 
 <ENDTABLE>(?i:create{sep}table) {
 	std::ostringstream linestr;
 	linestr << line;
 	throw std::runtime_error("Unexpected token \"" + std::string(yytext) + "\" on line " + linestr.str() + " in context ENDTABLE (missing \";\" ?)");
 }
-<ENDTABLE>; { sm.addTableType(); sm.commitTable(); BEGIN INITIAL; }
-<ENDTABLE>{alphaexteq} { sm.tempContents().append(yytext); }
-<ENDTABLE>{sep} { if (sm.tempContents().size() > 0) sm.tempContents().append(" "); }
+<ENDTABLE>; { psm->addTableType(); psm->commitTable(); BEGIN INITIAL; }
+<ENDTABLE>{alphaexteq} { psm->tempContents().append(yytext); }
+<ENDTABLE>{sep} { if (psm->tempContents().size() > 0) psm->tempContents().append(" "); }
 <ENDTABLE>[\r]+ { }
 <ENDTABLE>\n { line++; }
 <ENDTABLE>. { }
@@ -293,19 +294,21 @@ csep	[ \t]*
 namespace sqlfileparser
 {
 
-const SQLTableListManager& lexParse(std::istream& input, bool skipModifiedTimestamps)
+SQLTableListManagerPtr&
+lexParse(std::istream& input, bool skipModifiedTimestamps)
 {
+	psm.reset(new SQLTableListManager);
 	parantLevel = 0;
 	wasInt = false;
 	line = 1;
-	sm.clear();
 	skipTimestamps = skipModifiedTimestamps;
 	lastFieldTimestamp = false;
 
 	yyFlexLexer lex(&input);
-	while (lex.yylex()) { }
+	while (lex.yylex());
 
-	return sm;
+	return psm;
 }
 
 } //namespace
+

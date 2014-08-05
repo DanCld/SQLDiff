@@ -4,6 +4,12 @@ will allow the clean upgrade of a database from version 1 to version 2.
 
 Documentation not yet written, although it might not be needed.
 
+Build with:
+
+./autogen.sh
+./configure
+make
+
 License: GPL v3
 
 Dan-Claudiu Dragos <dancld@yahoo.co.uk>

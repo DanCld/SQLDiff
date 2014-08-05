@@ -9,7 +9,7 @@ sqlFileParser_SOURCES = \
 	SQLParserHelper.cpp SQLParserHelper.hpp \
 	LexParser.cpp LexParser.hpp
 
-sqlFileParser_CPPFLAGS = -Wall
+sqlFileParser_CPPFLAGS = -std=c++0x -Wall
 
 sqlFileParser_LDADD = $(LEXLIB)
 

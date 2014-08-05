@@ -15,7 +15,8 @@
 
 using namespace sqlfileparser;
 
-int main(int argc, char* argv[])
+int
+main(int argc, char* argv[])
 {
 	try
 	{
@@ -53,26 +54,19 @@ int main(int argc, char* argv[])
 			throw std::runtime_error("cannot open file " + std::string(argv[pstart + 1]) + " for reading.");
 		}
 
-	/* performing 2 local copies of the static variable in the lex parsing module;
-		we're not modifying them so the "good practice" says we should keep them
-		const; if we were not copying them then the main class would be "fed" with
-		2 references to the same data structure
-	*/
-
-		const SQLTableListManager sm1(lexParse(inp1, skipModifiedTimestampsFunction));
-		const SQLTableListManager sm2(lexParse(inp2, skipModifiedTimestampsFunction));
+		SQLTableListManagerPtr psm1 = lexParse(inp1, skipModifiedTimestampsFunction), psm2 = lexParse(inp2, skipModifiedTimestampsFunction);
 
 #ifdef DEBUG
 
 		std::ofstream debug1("debug1.txt");
-		sm1.print(debug1);
+		psm1->print(debug1);
 
 		std::ofstream debug2("debug2.txt");
-		sm2.print(debug2);
+		psm2->print(debug2);
 
 #endif
 
-		SQLFileParser sqlParser(sm1, sm2);
+		SQLFileParser sqlParser(psm1, psm2);
 
 		if (argc == pstart + 3)
 		{

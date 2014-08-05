@@ -23,7 +23,7 @@ class SQLFileParser {
 
 	public:
 
-		SQLFileParser(const SQLTableListManager& sm1, const SQLTableListManager& sm2);
+		SQLFileParser(const SQLTableListManagerPtr& psm1, const SQLTableListManagerPtr& psm2);
 
 		void print(std::ostream& out);
 
@@ -84,10 +84,10 @@ class SQLFileParser {
 
 
 /* these data structures must be allocated and initialized outside this class;
-   please note the const reference declaration for both
+   please note that we keep shared pointers to them
 */
 
-		const SQLTableListManager &sm1_, &sm2_;
+		const SQLTableListManagerPtr psm1_, psm2_;
 
 		TableCommandsMap tableCommands_;
 
@@ -104,3 +104,4 @@ class SQLFileParser {
 } // namespace
 
 #endif
+

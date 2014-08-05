@@ -10,9 +10,9 @@
 namespace sqlfileparser
 {
 
-SQLFileParser::SQLFileParser(const SQLTableListManager& sm1, const SQLTableListManager& sm2)
-:sm1_(sm1),
-sm2_(sm2),
+SQLFileParser::SQLFileParser(const SQLTableListManagerPtr& psm1, const SQLTableListManagerPtr& psm2)
+:psm1_(psm1),
+psm2_(psm2),
 tableCommands_(),
 tableDropCommands_(),
 fieldCommands_(),
@@ -30,7 +30,7 @@ SQLFileParser::print(std::ostream& out)
    out in the order we received the input (that is the table order in the second .sql file
 */
 
-	for(SQLTableRawList::const_iterator it = sm2_.rawtlist().begin() ; it != sm2_.rawtlist().end() ; ++it)
+	for(SQLTableRawList::const_iterator it = psm2_->rawtlist().begin() ; it != psm2_->rawtlist().end() ; ++it)
 	{
 
 /* create table statements, if any
@@ -88,22 +88,22 @@ SQLFileParser::print(std::ostream& out)
 void
 SQLFileParser::parseTables()
 {
-	SQLTableList::const_iterator v1_it = sm1_.tlist().begin();
-	SQLTableList::const_iterator v2_it = sm2_.tlist().begin();
+	SQLTableList::const_iterator v1_it = psm1_->tlist().begin();
+	SQLTableList::const_iterator v2_it = psm2_->tlist().begin();
 
 /* we go through both indexed structures at once (complexity O(n))
 */
 
-	while( v1_it != sm1_.tlist().end() || v2_it != sm2_.tlist().end() )
+	while( v1_it != psm1_->tlist().end() || v2_it != psm2_->tlist().end() )
 	{
-		if ( v2_it == sm2_.tlist().end() )
+		if ( v2_it == psm2_->tlist().end() )
 		{
 			printDropTableCommand(*v1_it);
 			v1_it++;
 			continue;
 		}
 
-		if ( v1_it == sm1_.tlist().end() )
+		if ( v1_it == psm1_->tlist().end() )
 		{
 			printCreateTableCommand(*v2_it);
 			v2_it++;
@@ -124,11 +124,11 @@ SQLFileParser::parseTables()
 			continue;
 		}
 
-		fieldCommands_.insert(std::make_pair<std::string, FieldCommand>(v1_it->name, FieldCommand()));
-		fieldDropCommands_.insert(std::make_pair<std::string, std::string>(v1_it->name, std::string()));
+		fieldCommands_.insert(std::make_pair(v1_it->name, FieldCommand()));
+		fieldDropCommands_.insert(std::make_pair(v1_it->name, std::string()));
 		parseFields(*(v1_it), *(v2_it));
 
-		keyCommands_.insert(std::make_pair<std::string, std::string>(v1_it->name, std::string()));
+		keyCommands_.insert(std::make_pair(v1_it->name, std::string()));
 		parsePrimary(*(v1_it), *(v2_it));
 		parseForeign(*(v1_it), *(v2_it));
 		parseIndex(*(v1_it), *(v2_it));
@@ -534,7 +534,7 @@ SQLFileParser::printCreateTableCommand(const SQLTable& ref)
 		<< ref.tabletype << ";"
 		<< std::endl << std::endl;
 
-	tableCommands_.insert(std::make_pair<std::string, std::string>(ref.name, mstr_.str()));
+	tableCommands_.insert(std::make_pair(ref.name, mstr_.str()));
 }
 
 void
@@ -557,7 +557,7 @@ SQLFileParser::printAlterModifyCommand(const SQLTable& ref, const std::pair<std:
 		<< " modify column " << rfield.first << " " << rfield.second << ";"
 		<< std::endl << std::endl; 
 
-	fieldCommands_.at(ref.name).insert(std::make_pair<std::string, std::string>(rfield.first, mstr_.str()));
+	fieldCommands_.at(ref.name).insert(std::make_pair(rfield.first, mstr_.str()));
 }
 
 void
@@ -592,7 +592,7 @@ SQLFileParser::printAlterAddCommand(const SQLTable& ref, const std::pair<std::st
 		<< " add column " << rfield.first << " " << rfield.second <<  " " << tmpbuf << ";"
 		<< std::endl << std::endl;
 
-	fieldCommands_.at(ref.name).insert(std::make_pair<std::string, std::string>(rfield.first, mstr_.str()));
+	fieldCommands_.at(ref.name).insert(std::make_pair(rfield.first, mstr_.str()));
 }
 
 void
@@ -758,3 +758,4 @@ SQLFileParser::printAlterAddSpatialCommand(const SQLTable& ref, const std::pair<
 }
 
 } //namespace
+

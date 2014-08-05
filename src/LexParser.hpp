@@ -12,10 +12,10 @@
 namespace sqlfileparser
 {
 
-/* returning a const reference to a static variable declared in the .cpp file
+/* returning a smart pointer reference
 */
 
-	const SQLTableListManager& lexParse(std::istream& input, bool skipModifiedTimestamps = false);
+	SQLTableListManagerPtr& lexParse(std::istream& input, bool skipModifiedTimestamps = false);
 
 } // namespace
 

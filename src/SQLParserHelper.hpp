@@ -10,6 +10,7 @@
 #include <map>
 #include <string>
 #include <ostream>
+#include <memory>
 
 namespace sqlfileparser
 {
@@ -137,6 +138,8 @@ class SQLTableListManager
 
 		MgrState lastState_;
 };
+
+typedef std::shared_ptr<SQLTableListManager> SQLTableListManagerPtr;
 
 } // namespace
 
